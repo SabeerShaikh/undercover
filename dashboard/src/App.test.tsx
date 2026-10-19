@@ -20,6 +20,8 @@ const queue: QueueClaim[] = [
     summary: "Flight home canceled",
     amount_claimed: 420,
     status: "waiting",
+    decision: null,
+    payout: null,
     customer_name: "Maya Patel",
   },
   {
@@ -27,6 +29,8 @@ const queue: QueueClaim[] = [
     summary: "Suitcase lost",
     amount_claimed: 1150,
     status: "waiting_for_sign_off",
+    decision: "approve",
+    payout: 1150,
     customer_name: "Tom Becker",
   },
 ];
@@ -138,7 +142,13 @@ it("shows the claims queue", async () => {
   expect(await screen.findByText("CLM-1001")).toBeDefined();
   expect(screen.getByText("Maya Patel")).toBeDefined();
   expect(screen.getByText("$420.00")).toBeDefined();
-  expect(screen.getByText("Waiting")).toBeDefined();
+  expect(
+    screen.getByText("2 claims in the queue", { exact: false }),
+  ).toBeDefined();
+  expect(screen.getByText("By status")).toBeDefined();
+  expect(screen.getByText("By decision")).toBeDefined();
+  expect(screen.getAllByText("approve").length).toBeGreaterThan(0);
+  expect(screen.getAllByText("$1,150.00").length).toBeGreaterThan(0);
 });
 
 it("opens a claim with story, items, documents and policy", async () => {

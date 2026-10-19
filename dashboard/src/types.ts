@@ -6,6 +6,8 @@ export interface QueueClaim {
   summary: string;
   amount_claimed: number;
   status: ClaimStatus;
+  decision: string | null;
+  payout: number | null;
   customer_name: string;
 }
 

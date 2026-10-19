@@ -188,10 +188,11 @@ def seed(connection: sqlite3.Connection, data_dir: Path = DATA) -> None:
 
 @_synced
 def list_claims(connection: sqlite3.Connection) -> list[dict]:
-    """Return queue rows with customer names."""
+    """Return queue rows with customer names, decision and payout."""
     rows = connection.execute(
         """
-        SELECT c.claim_id, c.summary, c.amount_claimed, c.status, cu.data AS customer
+        SELECT c.claim_id, c.summary, c.amount_claimed, c.status,
+               c.decision, c.payout, cu.data AS customer
         FROM claims c
         JOIN customers cu ON cu.customer_id = c.customer_id
         ORDER BY c.claim_id
@@ -206,6 +207,8 @@ def list_claims(connection: sqlite3.Connection) -> list[dict]:
                 "summary": row["summary"],
                 "amount_claimed": row["amount_claimed"],
                 "status": row["status"],
+                "decision": row["decision"],
+                "payout": row["payout"],
                 "customer_name": customer["name"],
             }
         )

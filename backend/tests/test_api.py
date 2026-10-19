@@ -26,6 +26,8 @@ def test_list_claims(client: TestClient):
     assert clm["status"] == "waiting"
     assert clm["amount_claimed"] == 420.0
     assert clm["customer_name"] == "Maya Patel"
+    assert clm["decision"] is None
+    assert clm["payout"] is None
 
 
 def test_get_claim(client: TestClient):
