@@ -129,13 +129,22 @@ def run_claim(claim_id: str) -> dict[str, str]:
     claim = store.get_claim(db, claim_id)
     if claim is None:
         raise HTTPException(status_code=404, detail="Claim not found")
-    if claim["status"] != "waiting":
+    if claim["status"] not in ("waiting", "in_progress"):
         raise HTTPException(status_code=409, detail="Claim is not waiting")
     llm = agent_llm
     thread_id = f"run-{claim_id}"
 
     def work() -> None:
-        agent_main.run(claim_id, thread_id, llm)
+        try:
+            agent_main.run(claim_id, thread_id, llm)
+        except Exception:
+            current = store.get_claim(db, claim_id)
+            if (
+                current is not None
+                and current["status"] == "in_progress"
+                and current["decision"] is None
+            ):
+                store.set_status(db, claim_id, "waiting")
 
     threading.Thread(target=work, daemon=True).start()
     return {"status": "started"}

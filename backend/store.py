@@ -5,10 +5,25 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import threading
+from collections.abc import Callable
+from functools import wraps
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
+_lock = threading.RLock()
+
+
+def _synced[F: Callable[..., object]](fn: F) -> F:
+    """Serialize access: one sqlite3 connection is shared across request threads."""
+
+    @wraps(fn)
+    def wrapper(*args: object, **kwargs: object) -> object:
+        with _lock:
+            return fn(*args, **kwargs)
+
+    return wrapper  # type: ignore[return-value]
 
 
 def default_db_path() -> Path:
@@ -41,11 +56,15 @@ def connect(db_path: Path | str | None = None) -> sqlite3.Connection:
     connection = sqlite3.connect(
         str(db_path if db_path is not None else default_db_path()),
         check_same_thread=False,
+        timeout=30,
     )
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA journal_mode=WAL")
+    connection.execute("PRAGMA busy_timeout=5000")
     return connection
 
 
+@_synced
 def init_db(db_path: Path | str | None = None) -> sqlite3.Connection:
     """Create tables if needed, seed once from data/, and return a connection."""
     connection = connect(db_path)
@@ -110,6 +129,7 @@ def _seeded(connection: sqlite3.Connection) -> bool:
     return bool(row and row["n"] > 0)
 
 
+@_synced
 def seed(connection: sqlite3.Connection, data_dir: Path = DATA) -> None:
     """Load seed files into an empty database."""
     company = json.loads((data_dir / "company.json").read_text(encoding="utf-8"))
@@ -166,6 +186,7 @@ def seed(connection: sqlite3.Connection, data_dir: Path = DATA) -> None:
     connection.commit()
 
 
+@_synced
 def list_claims(connection: sqlite3.Connection) -> list[dict]:
     """Return queue rows with customer names."""
     rows = connection.execute(
@@ -191,6 +212,7 @@ def list_claims(connection: sqlite3.Connection) -> list[dict]:
     return result
 
 
+@_synced
 def get_claim(connection: sqlite3.Connection, claim_id: str) -> dict | None:
     """Return one claim with policy, plan, customer, decision fields and steps."""
     row = connection.execute(
@@ -243,18 +265,21 @@ def get_claim(connection: sqlite3.Connection, claim_id: str) -> dict | None:
     }
 
 
+@_synced
 def get_policy_wording(connection: sqlite3.Connection) -> str:
     """Return the policy wording markdown."""
     row = connection.execute("SELECT text FROM policy_wording WHERE id = 1").fetchone()
     return row["text"] if row else ""
 
 
+@_synced
 def get_instructions(connection: sqlite3.Connection) -> str:
     """Return the agent's instructions."""
     row = connection.execute("SELECT text FROM instructions WHERE id = 1").fetchone()
     return row["text"] if row else ""
 
 
+@_synced
 def get_payout_approval_limit(connection: sqlite3.Connection) -> float:
     """Return the company payout approval limit."""
     row = connection.execute("SELECT data FROM company WHERE id = 1").fetchone()
@@ -263,15 +288,18 @@ def get_payout_approval_limit(connection: sqlite3.Connection) -> float:
     return float(json.loads(row["data"])["payout_approval_limit"])
 
 
+@_synced
 def set_status(connection: sqlite3.Connection, claim_id: str, status: str) -> bool:
-    """Set claim status. in_progress is allowed only from waiting."""
+    """Set claim status. in_progress and waiting are allowed from either of those."""
     row = connection.execute(
         "SELECT status FROM claims WHERE claim_id = ?",
         (claim_id,),
     ).fetchone()
     if row is None:
         return False
-    if status == "in_progress" and row["status"] != "waiting":
+    if status == "in_progress" and row["status"] not in ("waiting", "in_progress"):
+        return False
+    if status == "waiting" and row["status"] not in ("waiting", "in_progress"):
         return False
     connection.execute(
         "UPDATE claims SET status = ? WHERE claim_id = ?",
@@ -281,6 +309,7 @@ def set_status(connection: sqlite3.Connection, claim_id: str, status: str) -> bo
     return True
 
 
+@_synced
 def record_decision(
     connection: sqlite3.Connection,
     claim_id: str,
@@ -320,6 +349,7 @@ def record_decision(
     return status
 
 
+@_synced
 def sign_off(connection: sqlite3.Connection, claim_id: str) -> bool:
     """Mark a claim waiting for sign-off as signed off."""
     row = connection.execute(
@@ -336,6 +366,7 @@ def sign_off(connection: sqlite3.Connection, claim_id: str) -> bool:
     return True
 
 
+@_synced
 def pay(
     connection: sqlite3.Connection, claim_id: str, amount: float
 ) -> tuple[bool, str]:
@@ -367,6 +398,7 @@ def pay(
     return True, "ok"
 
 
+@_synced
 def add_step(
     connection: sqlite3.Connection, claim_id: str, tool_name: str, detail: str
 ) -> bool:

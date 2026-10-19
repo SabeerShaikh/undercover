@@ -34,7 +34,8 @@ export function ClaimView({
       </header>
 
       <div className="actions">
-        {claim.status === "waiting" && (
+        {(claim.status === "waiting" ||
+          (claim.status === "in_progress" && !claim.decision)) && (
           <button type="button" disabled={busy} onClick={onRun}>
             Run agent
           </button>
