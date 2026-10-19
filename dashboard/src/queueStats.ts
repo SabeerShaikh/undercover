@@ -35,6 +35,16 @@ export function countByStatus(claims: QueueClaim[]): StatusCount[] {
   }));
 }
 
+export function decisionLabel(decision: string): string {
+  const labels: Record<string, string> = {
+    approve: "Approve",
+    decline: "Decline",
+    refer: "Refer",
+    none: "No decision",
+  };
+  return labels[decision] ?? decision;
+}
+
 export function countByDecision(claims: QueueClaim[]): DecisionCount[] {
   const counts = new Map<string, number>();
   for (const claim of claims) {
@@ -42,12 +52,6 @@ export function countByDecision(claims: QueueClaim[]): DecisionCount[] {
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
   const order = ["approve", "decline", "refer", "none"];
-  const labels: Record<string, string> = {
-    approve: "Approve",
-    decline: "Decline",
-    refer: "Refer",
-    none: "No decision",
-  };
   const keys = [
     ...order.filter((key) => counts.has(key)),
     ...[...counts.keys()]
@@ -56,7 +60,7 @@ export function countByDecision(claims: QueueClaim[]): DecisionCount[] {
   ];
   return keys.map((decision) => ({
     decision,
-    label: labels[decision] ?? decision,
+    label: decisionLabel(decision),
     count: counts.get(decision) ?? 0,
   }));
 }

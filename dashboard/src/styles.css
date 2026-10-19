@@ -10,6 +10,7 @@
   --sea-mist: #cdd8db;
   --page: #f0f4f5;
   --panel: #ffffff;
+  --inset: #f4f7f8;
   --ink: var(--midnight);
   --muted: #3d5a63;
   --sea-text: #048a68;
@@ -24,6 +25,7 @@
   :root {
     --page: #04232e;
     --panel: #000000;
+    --inset: #0a1d24;
     --ink: var(--sea-mist);
     --muted: #9fb0b6;
     --sea-text: #5eecc0;
@@ -136,36 +138,27 @@ nav button.active {
   text-decoration: underline;
 }
 
-.queue-counts {
+.queue > h2 {
+  margin-bottom: 0.35rem;
+}
+
+.tiles {
   display: grid;
-  gap: 1.25rem;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  margin: 0 0 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin: 0 0 1.25rem;
 }
 
-.queue-counts h3 {
-  margin: 0 0 0.5rem;
-  font-size: 0.95rem;
-  color: var(--sea-text);
-}
-
-.queue-counts ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.45rem;
-}
-
-.queue-counts li {
+.tile {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
 }
 
-.queue-counts .count {
-  font-weight: 600;
+.tile-count {
+  font-size: 1.8rem;
+  font-weight: 500;
 }
 
 .decision-chip {
@@ -174,6 +167,7 @@ nav button.active {
   padding: 0.2rem 0.65rem;
   font-size: 0.85rem;
   font-weight: 600;
+  white-space: nowrap;
   background: color-mix(in srgb, var(--muted) 18%, transparent);
   color: var(--ink);
 }
@@ -184,8 +178,8 @@ nav button.active {
 }
 
 .decision-decline {
-  background: var(--raspberry);
-  color: #fff;
+  background: var(--coral);
+  color: var(--midnight);
 }
 
 .decision-refer {
@@ -197,22 +191,34 @@ nav button.active {
   background: color-mix(in srgb, var(--muted) 22%, transparent);
 }
 
+.table-scroll {
+  overflow-x: auto;
+}
+
 .queue-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.95rem;
 }
 
 .queue-table th,
 .queue-table td {
   text-align: left;
-  padding: 0.65rem 0.4rem;
+  padding: 0.55rem 0.75rem;
   vertical-align: top;
 }
 
 .queue-table th {
   color: var(--muted);
+  font-size: 0.8rem;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.queue-table .num {
+  text-align: right;
+  white-space: nowrap;
 }
 
 .status {
@@ -221,12 +227,13 @@ nav button.active {
   padding: 0.2rem 0.65rem;
   font-size: 0.85rem;
   font-weight: 600;
+  white-space: nowrap;
   color: var(--midnight);
 }
 
 .status-waiting {
-  background: var(--sea-green);
-  color: var(--midnight);
+  background: var(--cerulean);
+  color: #fff;
 }
 
 .status-in_progress {
@@ -240,8 +247,8 @@ nav button.active {
 }
 
 .status-decided {
-  background: var(--cerulean);
-  color: #fff;
+  background: var(--sea-green);
+  color: var(--midnight);
 }
 
 .claim-header {

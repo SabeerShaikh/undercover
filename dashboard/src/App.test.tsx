@@ -142,12 +142,12 @@ it("shows the claims queue", async () => {
   expect(await screen.findByText("CLM-1001")).toBeDefined();
   expect(screen.getByText("Maya Patel")).toBeDefined();
   expect(screen.getByText("$420.00")).toBeDefined();
-  expect(
-    screen.getByText("2 claims in the queue", { exact: false }),
-  ).toBeDefined();
-  expect(screen.getByText("By status")).toBeDefined();
-  expect(screen.getByText("By decision")).toBeDefined();
-  expect(screen.getAllByText("approve").length).toBeGreaterThan(0);
+  expect(screen.getByText("2 claims.", { exact: false })).toBeDefined();
+  expect(screen.getByLabelText("Claims by status")).toBeDefined();
+  expect(screen.getByLabelText("Claims by decision")).toBeDefined();
+  expect(screen.getByLabelText("Waiting: 1")).toBeDefined();
+  expect(screen.getByLabelText("Waiting for sign-off: 1")).toBeDefined();
+  expect(screen.getByLabelText("Approve: 1")).toBeDefined();
   expect(screen.getAllByText("$1,150.00").length).toBeGreaterThan(0);
 });
 
