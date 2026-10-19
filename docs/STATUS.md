@@ -1,10 +1,10 @@
 # Status
 
-A hello-world skeleton with every check in place:
+Pilot through Phase 3: store, API and agent.
 
-- `backend/`: one route, `GET /api/health`
-- `agent/`: the entry point `run(claim_id, thread_id)`, with one tool that calls the health route
-- `dashboard/`: one page that shows whether the backend is up
-- `e2e/`: one test of that page
+- `backend/`: SQLite store seeded from `data/`, health route, and claims API (queue, claim, wording, instructions, decision, sign-off, pay, steps, status)
+- `agent/`: `run(claim_id, thread_id)` with tools that call the backend only; stub-model tests for approve/pay, over-limit sign-off, and decline
+- `dashboard/`: still the skeleton health page (Phase 4 next)
+- Database: `undercover.db` at the repo root (gitignored), created on backend start
 
-Nothing of UnderCover is built yet. Update this file as you build.
+Run the API and skeleton UI with `npm run dev`.
