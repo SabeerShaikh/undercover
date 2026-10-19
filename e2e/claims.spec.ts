@@ -5,13 +5,18 @@ const API = "http://127.0.0.1:8000";
 test("the queue lists claims including CLM-1001", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "UnderCover" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "CLM-1001" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Open claim CLM-1001" }),
+  ).toBeVisible();
   await expect(page.getByText("Maya Patel")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Claims by status" }),
+  ).toBeVisible();
 });
 
 test("opening a claim shows its story and policy", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "CLM-1001" }).click();
+  await page.getByRole("button", { name: "Open claim CLM-1001" }).click();
   await expect(page.getByRole("heading", { name: "CLM-1001" })).toBeVisible();
   await expect(page.getByText(/Rome/i).first()).toBeVisible();
   await expect(page.getByText("Maya Patel", { exact: true })).toBeVisible();
@@ -53,7 +58,7 @@ test("sign-off pays a claim waiting for handler approval", async ({
   });
 
   await page.goto("/");
-  await page.getByRole("button", { name: claimId }).click();
+  await page.getByRole("button", { name: `Open claim ${claimId}` }).click();
   await expect(page.getByText("Waiting for sign-off")).toBeVisible();
   await page.getByRole("button", { name: "Sign off and pay" }).click();
   await expect(page.getByText("Decided")).toBeVisible();

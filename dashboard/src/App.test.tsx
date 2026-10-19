@@ -142,7 +142,8 @@ it("shows the claims queue", async () => {
   expect(await screen.findByText("CLM-1001")).toBeDefined();
   expect(screen.getByText("Maya Patel")).toBeDefined();
   expect(screen.getByText("$420.00")).toBeDefined();
-  expect(screen.getByText("2 claims.", { exact: false })).toBeDefined();
+  expect(screen.getByText(/2 claims/)).toBeDefined();
+  expect(screen.getByText(/still open/)).toBeDefined();
   expect(screen.getByLabelText("Claims by status")).toBeDefined();
   expect(screen.getByLabelText("Claims by decision")).toBeDefined();
   expect(screen.getByLabelText("Waiting: 1")).toBeDefined();
@@ -163,7 +164,9 @@ it("opens a claim with story, items, documents and policy", async () => {
   });
   vi.stubGlobal("fetch", fetchMock);
   render(<App />);
-  fireEvent.click(await screen.findByRole("button", { name: "CLM-1001" }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Open claim CLM-1001" }),
+  );
   expect(
     await screen.findByText("My flight home from Rome was canceled."),
   ).toBeDefined();
@@ -200,7 +203,9 @@ it("shows a decision and signs off a waiting claim", async () => {
   });
   vi.stubGlobal("fetch", fetchMock);
   render(<App />);
-  fireEvent.click(await screen.findByRole("button", { name: "CLM-1002" }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Open claim CLM-1002" }),
+  );
   expect(await screen.findByText("Covered baggage loss.")).toBeDefined();
   expect(screen.getByText("approve")).toBeDefined();
   fireEvent.click(screen.getByRole("button", { name: "Sign off and pay" }));
@@ -231,7 +236,9 @@ it("starts the agent on a waiting claim", async () => {
   });
   vi.stubGlobal("fetch", fetchMock);
   render(<App />);
-  fireEvent.click(await screen.findByRole("button", { name: "CLM-1001" }));
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Open claim CLM-1001" }),
+  );
   fireEvent.click(await screen.findByRole("button", { name: "Run agent" }));
   expect(await screen.findByText("In progress")).toBeDefined();
   expect(screen.getByText(/get_claim/)).toBeDefined();

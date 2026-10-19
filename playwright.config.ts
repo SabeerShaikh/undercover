@@ -12,13 +12,13 @@ export default defineConfig({
     {
       command: "uv run -m uvicorn backend.main:app --port 8000",
       url: "http://127.0.0.1:8000/api/health",
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
       env: { ...process.env, UNDERCOVER_DB: e2eDb },
     },
     {
       command: "npx vite dashboard --port 5173 --strictPort",
       url: "http://localhost:5173",
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
     },
   ],
 });

@@ -21,11 +21,22 @@ export function App() {
 
   useEffect(() => {
     if (view.name !== "queue") return;
-    void fetchClaims()
-      .then(setClaims)
-      .catch(() => {
-        setError("Could not load the claims queue.");
-      });
+    let cancelled = false;
+    const load = () => {
+      void fetchClaims()
+        .then((next) => {
+          if (!cancelled) setClaims(next);
+        })
+        .catch(() => {
+          if (!cancelled) setError("Could not load the claims queue.");
+        });
+    };
+    load();
+    const timer = window.setInterval(load, 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
   }, [view]);
 
   useEffect(() => {
