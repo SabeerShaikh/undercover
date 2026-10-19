@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+import threading
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from langchain_core.language_models import BaseChatModel
 from pydantic import BaseModel, Field
 
+from agent import main as agent_main
 from backend import store
 
 app = FastAPI(title="UnderCover")
 db = store.init_db()
+agent_llm: BaseChatModel | None = None
 
 
 class DecisionBody(BaseModel):
@@ -117,3 +121,21 @@ def set_status(claim_id: str, body: StatusBody) -> dict[str, str]:
     if not store.set_status(db, claim_id, body.status):
         raise HTTPException(status_code=409, detail="Cannot set status")
     return {"status": body.status}
+
+
+@app.post("/api/claims/{claim_id}/run", operation_id="run_claim")
+def run_claim(claim_id: str) -> dict[str, str]:
+    """Start the UnderCover Agent on a waiting claim."""
+    claim = store.get_claim(db, claim_id)
+    if claim is None:
+        raise HTTPException(status_code=404, detail="Claim not found")
+    if claim["status"] != "waiting":
+        raise HTTPException(status_code=409, detail="Claim is not waiting")
+    llm = agent_llm
+    thread_id = f"run-{claim_id}"
+
+    def work() -> None:
+        agent_main.run(claim_id, thread_id, llm)
+
+    threading.Thread(target=work, daemon=True).start()
+    return {"status": "started"}

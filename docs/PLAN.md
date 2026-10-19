@@ -106,12 +106,12 @@ Let handlers see the queue and a claim in full, including a decision when there 
 
 **Success criteria**
 
-- [ ] `npx vitest run --root dashboard --coverage` passes at 80%.
-- [ ] `npm run dev`: open `/`, queue shows 25 claims including CLM-1001.
-- [ ] Open CLM-1001: story, hotel/meals/taxis items, documents, Maya Patel, Premium policy.
-- [ ] After a test decision on a claim, the claim view shows the decision and reason; the queue status updates.
-- [ ] Put CLM-1002 in `waiting_for_sign_off` via the API, open it, sign off in the browser; it becomes decided and paid.
-- [ ] Light and dark both use the brand surfaces (page `#F0F4F5` / `#04232E`, panels white / black, no top bar line).
+- [x] `npx vitest run --root dashboard --coverage` passes at 80%.
+- [x] `npm run dev`: open `/`, queue shows 25 claims including CLM-1001.
+- [x] Open CLM-1001: story, hotel/meals/taxis items, documents, Maya Patel, Premium policy.
+- [x] After a test decision on a claim, the claim view shows the decision and reason; the queue status updates.
+- [x] Put CLM-1002 in `waiting_for_sign_off` via the API, open it, sign off in the browser; it becomes decided and paid.
+- [x] Light and dark both use the brand surfaces (page `#F0F4F5` / `#04232E`, panels white / black, no top bar line).
 
 ## Phase 5 — Live work, run, and instructions
 
@@ -127,11 +127,11 @@ Show the agent working, let a handler start it, and show its instructions read-o
 
 **Success criteria**
 
-- [ ] `uv run pytest -q` covers the start route with a stub model on CLM-1001 and ends `decided` and paid.
-- [ ] Vitest covers the run control, the step list, and the instructions view.
-- [ ] Browser: instructions view shows the same wording as `GET /api/instructions` and has no inputs.
-- [ ] Browser: start the agent on a waiting claim (stub or a short real run if a key is present); status becomes in progress, steps appear, then a decision.
-- [ ] Queue uses “in progress” while that run is live.
+- [x] `uv run pytest -q` covers the start route with a stub model on CLM-1001 and ends `decided` and paid.
+- [x] Vitest covers the run control, the step list, and the instructions view.
+- [x] Browser: instructions view shows the same wording as `GET /api/instructions` and has no inputs.
+- [x] Browser: start the agent on a waiting claim (stub or a short real run if a key is present); status becomes in progress, steps appear, then a decision.
+- [x] Queue uses “in progress” while that run is live.
 
 ## Phase 6 — End-to-end checks and status
 
@@ -145,10 +145,10 @@ Lock the handler path with Playwright and leave the repo runnable.
 
 **Success criteria**
 
-- [ ] `npx playwright test` passes.
-- [ ] `npm run check` passes (ruff, pyright, pytest 80%, ESLint, Prettier, tsc, vitest 80%, Playwright).
-- [ ] `docs/STATUS.md` matches the running app.
-- [ ] Windows-safe: scripts stay `uv run` / npm / `.mjs`; no Unix-only shell.
+- [x] `npx playwright test` passes.
+- [x] `npm run check` passes (ruff, pyright, pytest 80%, ESLint, Prettier, tsc, vitest 80%, Playwright).
+- [x] `docs/STATUS.md` matches the running app.
+- [x] Windows-safe: scripts stay `uv run` / npm / `.mjs`; no Unix-only shell.
 
 ## Out of scope
 

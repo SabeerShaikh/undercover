@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
-DEFAULT_DB = ROOT / "undercover.db"
+
+
+def default_db_path() -> Path:
+    """Return the SQLite path from UNDERCOVER_DB or undercover.db at the repo root."""
+    return Path(os.environ.get("UNDERCOVER_DB", str(ROOT / "undercover.db")))
+
 
 DEFAULT_INSTRUCTIONS = """\
 You are the UnderCover Agent. You decide travel insurance claims.
@@ -30,14 +36,17 @@ Do not invent coverage. Amounts are in US dollars.
 """
 
 
-def connect(db_path: Path | str = DEFAULT_DB) -> sqlite3.Connection:
+def connect(db_path: Path | str | None = None) -> sqlite3.Connection:
     """Open the database with row access by column name."""
-    connection = sqlite3.connect(str(db_path), check_same_thread=False)
+    connection = sqlite3.connect(
+        str(db_path if db_path is not None else default_db_path()),
+        check_same_thread=False,
+    )
     connection.row_factory = sqlite3.Row
     return connection
 
 
-def init_db(db_path: Path | str = DEFAULT_DB) -> sqlite3.Connection:
+def init_db(db_path: Path | str | None = None) -> sqlite3.Connection:
     """Create tables if needed, seed once from data/, and return a connection."""
     connection = connect(db_path)
     connection.executescript(
@@ -294,7 +303,8 @@ def record_decision(
     connection.execute(
         """
         UPDATE claims
-        SET decision = ?, payout = ?, reason = ?, policy_section = ?, status = ?
+        SET decision = ?, payout = ?, reason = ?, policy_section = ?,
+            status = ?, signed_off = 0, paid_amount = NULL
         WHERE claim_id = ?
         """,
         (
