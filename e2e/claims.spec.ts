@@ -80,5 +80,5 @@ test("sign-off pays a claim waiting for handler approval", async ({
   await expect(page.getByText("Waiting for sign-off")).toBeVisible();
   await page.getByRole("button", { name: "Sign off and pay" }).click();
   await expect(page.getByText("Decided")).toBeVisible();
-  await expect(page.getByText(/paid \$/)).toBeVisible();
+  await expect(page.locator("article.decision")).toContainText(/paid \$/);
 });

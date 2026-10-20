@@ -261,11 +261,10 @@ def run_claim(claim_id: str) -> dict[str, str]:
     if claim["status"] not in ("waiting", "in_progress"):
         raise HTTPException(status_code=409, detail="Claim is not waiting")
     llm = agent_llm
-    thread_id = f"run-{claim_id}"
 
     def work() -> None:
         try:
-            agent_main.run(claim_id, thread_id, llm)
+            agent_main.work_claim(claim_id, llm)
         except Exception:
             current = store.get_claim(db, claim_id)
             if (

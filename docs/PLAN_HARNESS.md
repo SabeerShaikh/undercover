@@ -148,18 +148,18 @@ Turn the pilot's `run` into `work_claim(claim_id)`: a new thread each attempt, t
 
 **Why a new thread.** Each claim starts with the instructions and one message. The queue's growing list of reports never enters the claim agent's context, so a later claim costs the same as the first.
 
-- [ ] Stub, within the limit: `work_claim("CLM-1001")` returns `CLM-1001  approve  $420.00`. The claim is decided and paid.
-- [ ] Stub, over the limit: the report for CLM-1002 ends `waiting for sign-off`, and nothing is paid.
-- [ ] A stub that raises on its second call: the report ends `back in the queue`. The claim is `waiting`, attempts 1, and the last step is the error.
-- [ ] The same failure again: the report ends `left for a handler`, and the claim is `left_for_handler`.
-- [ ] A stub that finishes without a decision: the report says the agent finished without recording a decision, and the claim is back in the queue.
-- [ ] A stub that calls `get_claim` in a loop stops at the step limit and the claim goes back to waiting.
-- [ ] A stub that raises after `record_decision`: the report gives the decision, the claim keeps it, and it is not put back.
-- [ ] `work_claim` on a decided claim returns `not started` and adds no step and no attempt.
-- [ ] Working two claims in a row, the claim model's first prompt each time holds only the claim instructions and one message naming that claim.
-- [ ] `uv run -m agent CLM-1001` prints the report, with `work_claim` stubbed in that test.
-- [ ] Live, after a reseed: `uv run -m agent CLM-1001` prints one report line. The claim API shows the same decision and payout, a reason of two or three sentences, and at least one reading step.
-- [ ] `npm run check` passes.
+- [x] Stub, within the limit: `work_claim("CLM-1001")` returns `CLM-1001  approve  $420.00`. The claim is decided and paid.
+- [x] Stub, over the limit: the report for CLM-1002 ends `waiting for sign-off`, and nothing is paid.
+- [x] A stub that raises on its second call: the report ends `back in the queue`. The claim is `waiting`, attempts 1, and the last step is the error.
+- [x] The same failure again: the report ends `left for a handler`, and the claim is `left_for_handler`.
+- [x] A stub that finishes without a decision: the report says the agent finished without recording a decision, and the claim is back in the queue.
+- [x] A stub that calls `get_claim` in a loop stops at the step limit and the claim goes back to waiting.
+- [x] A stub that raises after `record_decision`: the report gives the decision, the claim keeps it, and it is not put back.
+- [x] `work_claim` on a decided claim returns `not started` and adds no step and no attempt.
+- [x] Working two claims in a row, the claim model's first prompt each time holds only the claim instructions and one message naming that claim.
+- [x] `uv run -m agent CLM-1001` prints the report, with `work_claim` stubbed in that test.
+- [x] Live, after a reseed: `uv run -m agent CLM-1001` prints one report line. The claim API shows the same decision and payout, a reason of two or three sentences, and at least one reading step.
+- [x] `npm run check` passes.
 
 ## Phase 4 — The queue agent
 

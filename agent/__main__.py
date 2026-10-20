@@ -1,7 +1,8 @@
-"""Run the UnderCover Agent on waiting claims: uv run -m agent."""
+"""Run the UnderCover Agent: uv run -m agent [CLM-1001]."""
 
 from __future__ import annotations
 
+import argparse
 import sys
 
 import httpx
@@ -18,9 +19,16 @@ def waiting_claim_ids() -> list[str]:
     return [claim["claim_id"] for claim in claims if claim["status"] == "waiting"]
 
 
-def main_cli() -> int:
-    """Process every waiting claim through the agent."""
+def main_cli(argv: list[str] | None = None) -> int:
+    """Work one named claim, or every waiting claim."""
+    parser = argparse.ArgumentParser(description="Run the UnderCover Agent.")
+    parser.add_argument("claim", nargs="?", help="Work this claim only")
+    args = parser.parse_args(argv)
+
     try:
+        if args.claim:
+            print(main.work_claim(args.claim))
+            return 0
         claim_ids = waiting_claim_ids()
     except (httpx.HTTPError, OSError) as exc:
         print(
@@ -38,11 +46,7 @@ def main_cli() -> int:
     print(f"Running the agent on {len(claim_ids)} waiting claim(s).")
     for claim_id in claim_ids:
         print(f"\n=== {claim_id} ===")
-        try:
-            reply = main.run(claim_id, f"cli-{claim_id}")
-            print(reply)
-        except (httpx.HTTPError, OSError, RuntimeError, ValueError, KeyError) as exc:
-            print(f"Failed on {claim_id}: {exc}", file=sys.stderr)
+        print(main.work_claim(claim_id))
     return 0
 
 

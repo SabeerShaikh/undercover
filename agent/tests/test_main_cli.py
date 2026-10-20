@@ -30,21 +30,12 @@ def test_waiting_claim_ids(api: TestClient):
 def test_main_cli_runs_waiting_claims(api: TestClient, monkeypatch: pytest.MonkeyPatch):
     calls: list[str] = []
 
-    def fake_run(claim_id: str, thread_id: str, llm=None) -> str:
+    def fake_work(claim_id: str, llm=None) -> str:
         calls.append(claim_id)
-        api.post(
-            f"/api/claims/{claim_id}/decision",
-            json={
-                "decision": "decline",
-                "payout": 0,
-                "reason": "CLI stub.",
-                "policy_section": "Section 1",
-            },
-        )
         return f"done {claim_id}"
 
-    monkeypatch.setattr(main, "run", fake_run)
+    monkeypatch.setattr(main, "work_claim", fake_work)
     # Only process the first two waiting claims for a fast test.
     monkeypatch.setattr(cli, "waiting_claim_ids", lambda: ["CLM-1001", "CLM-1002"])
-    assert cli.main_cli() == 0
+    assert cli.main_cli([]) == 0
     assert calls == ["CLM-1001", "CLM-1002"]

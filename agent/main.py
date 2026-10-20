@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import uuid
 from http import HTTPStatus
 from typing import Any
 
@@ -24,6 +25,7 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_MODEL = "deepseek/deepseek-v4.1-flash"
 MODEL_TIMEOUT = 120
 MODEL_RETRIES = 5
+STEP_LIMIT = 60
 
 
 def backend() -> httpx.Client:
@@ -187,29 +189,78 @@ def fetch_instructions() -> str:
     return response.json()["claim"]
 
 
-def run(claim_id: str, thread_id: str, llm: BaseChatModel | None = None) -> str:
-    """Run the agent on one claim and return its final reply."""
+def _load_claim(claim_id: str) -> dict[str, Any]:
+    with backend() as client:
+        response = client.get(f"/api/claims/{claim_id}")
+    response.raise_for_status()
+    return response.json()
+
+
+def _usd(amount: float) -> str:
+    return f"${amount:,.2f}"
+
+
+def format_report(claim: dict[str, Any]) -> str:
+    """Build the one-line report from the claim record, not the model's reply."""
+    claim_id = claim["claim_id"]
+    decision = claim["decision"]
+    if decision:
+        payout = float(claim["payout"] or 0)
+        line = f"{claim_id}  {decision}  {_usd(payout)}"
+        if claim["status"] == "waiting_for_sign_off":
+            return f"{line}, waiting for sign-off"
+        if decision == "approve" and claim["paid_amount"] is None:
+            return f"{line}, not paid"
+        return line
+    errors = [step["detail"] for step in claim["steps"] if step["tool_name"] == "error"]
+    reason = errors[-1] if errors else "The agent finished without recording a decision"
+    ending = (
+        "left for a handler"
+        if claim["status"] == "left_for_handler"
+        else "back in the queue"
+    )
+    return f"{claim_id}  failed: {reason}, {ending}"
+
+
+def _fail_if_undecided(claim_id: str, reason: str) -> None:
+    claim = _load_claim(claim_id)
+    if claim["decision"] is not None or claim["status"] != "in_progress":
+        return
     with backend() as client:
         client.post(
-            f"/api/claims/{claim_id}/status",
-            json={"status": "in_progress"},
-        ).raise_for_status()
+            f"/api/claims/{claim_id}/failure",
+            json={"reason": reason},
+        )
+
+
+def work_claim(claim_id: str, llm: BaseChatModel | None = None) -> str:
+    """Work one claim on a new thread and return a one-line report."""
+    with backend() as client:
+        started = client.post(f"/api/claims/{claim_id}/start")
+    if started.status_code >= HTTPStatus.BAD_REQUEST:
+        detail = started.json().get("detail", started.text)
+        return f"{claim_id}  not started: {started.status_code}: {detail}"
     instructions = fetch_instructions()
     agent = create_agent(
         llm or model(), tools=_tools_for(claim_id), system_prompt=instructions
     )
-    result: dict[str, Any] = agent.invoke(
-        {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": (
-                        f"Work claim {claim_id}. Read the claim and the sections "
-                        "you need, decide, record the decision, and pay if you approve."
-                    ),
-                }
-            ]
-        },
-        config={"configurable": {"thread_id": thread_id}},
-    )
-    return result["messages"][-1].text
+    thread_id = f"claim-{claim_id}-{uuid.uuid4()}"
+    try:
+        agent.invoke(
+            {"messages": [{"role": "user", "content": f"Work claim {claim_id}."}]},
+            config={
+                "recursion_limit": STEP_LIMIT,
+                "configurable": {"thread_id": thread_id},
+            },
+        )
+    except Exception as exc:
+        _fail_if_undecided(claim_id, str(exc))
+        return format_report(_load_claim(claim_id))
+    _fail_if_undecided(claim_id, "The agent finished without recording a decision")
+    return format_report(_load_claim(claim_id))
+
+
+def run(claim_id: str, thread_id: str, llm: BaseChatModel | None = None) -> str:
+    """Backward-compatible entry: work one claim and return the report."""
+    _ = thread_id
+    return work_claim(claim_id, llm)
