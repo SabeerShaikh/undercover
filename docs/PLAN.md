@@ -140,7 +140,8 @@ Lock the handler path with Playwright and leave the repo runnable.
 **Build**
 
 - Playwright specs (no model calls): queue lists claims; open a claim; instructions are visible and not editable; sign-off path for a claim placed in `waiting_for_sign_off` through the API.
-- Replace the health-only e2e spec.
+- Replace the health-only e2e spec\\
+
 - Update `docs/STATUS.md`: what exists, how to run it (`npm run dev`), where the database lives.
 
 **Success criteria**

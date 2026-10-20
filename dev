@@ -1,0 +1,67 @@
+> concurrently -k -n backend,dashboard npm:dev:backend npm:dev:dashboard
+
+[dashboard] 
+[dashboard] > dev:dashboard
+[dashboard] > vite dashboard
+[dashboard] 
+[backend] 
+[backend] > dev:backend
+[backend] > uv run -m uvicorn backend.main:app --reload --reload-dir backend
+[backend] 
+[dashboard] 
+[dashboard]   VITE v8.3.1  ready in 151 ms
+[dashboard] 
+[dashboard]   ➜  Local:   http://localhost:5173/
+[dashboard]   ➜  Network: use --host to expose
+[backend] INFO:     Will watch for changes in these directories: ['/Users/sabeershaikh/Doc
+[backend] INFO:     Will watch for changes in these directories: ['/Users/sabeershaikh/Documents/Projects/undercover/backend']
+[backend] INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+[backend] INFO:     Started reloader process [82313] using StatReload
+[backend] INFO:     Started server process [82315]
+[backend] INFO:     Waiting for application startup.
+[backend] INFO:     Apption startup complete.
+[backend] INFO:     127.0.0.1:53521 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53522 - "GET / HTTP/1.1" 404 Not Found
+[backend] INFO:     127.0.0.1:53523 - "GET /json/version HTTP/1.1" 404 Not Found
+[backend] INFO:     127.0.0.1:53526 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53529 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53532 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53536 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53539 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53542 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53545 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53548 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53551 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53554 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+^[[D[backend] INFO:     127.0.0.1:53557 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53560 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53563 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53567 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53570 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53573 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53577 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53582 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53585 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53588 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53591 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53597 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53600 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53604 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53607 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53610 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53613 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53616 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53619 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53622 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53625 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53628 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53631 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53635 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53638 - "GET /api/claims/CLM-1001 HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53641 - "GET /api/claims HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53738 - "GET /api/claims HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53739 - "GET /api/claims HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53742 - "GET /api/claims HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:53743 - "GET /api/claims HTTP/1.1" 200 OK
+[dashboard] npm run dev:dashboard exited with code SIGKILL
+--> Sending SIGTERM to other processes..
