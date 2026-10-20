@@ -129,18 +129,18 @@ Add `attempts`, `left_for_handler`, `fail_claim`, and the run with its to-do lis
 
 **Why before the queue agent.** The cap, the retries, and the list the dashboard shows are records. The agent should call them, not invent them.
 
-- [ ] pytest covers each new 404, 409, and 422 in the API section above.
-- [ ] `start_claim` on CLM-1004 sets attempts to 1. `fail_claim` with `The model timed out` sets `waiting`, attempts stay 1, and the last step is that reason.
-- [ ] Starting and failing it again sets `left_for_handler` and attempts 2. Another `start_claim` returns 409.
-- [ ] `fail_claim` on a waiting claim, a decided claim, and a claim waiting for sign-off each return 409 and change nothing.
-- [ ] A second `record_decision` on a decided claim returns 409. A second pay still returns `already_paid`.
-- [ ] On a fresh database, `GET /api/runs/latest` is `null`.
-- [ ] `start_run` with cap 5 returns a running run, an empty list, and a start time. Cap 0 returns 422. A second `start_run` while it is running returns 409.
-- [ ] `write_todos` with two items, then three, leaves exactly those three in order. Status `blocked` returns 422. An empty item returns 422. An unknown run returns 404.
-- [ ] `finish_run` sets `finished`, a finish time, and the summary. Further todo writes return 409.
-- [ ] vitest: the queue shows a Left for a handler tile.
-- [ ] `uv run -m backend.seed` against a copy of the database leaves 25 waiting claims on the next startup.
-- [ ] `npm run check` passes.
+- [x] pytest covers each new 404, 409, and 422 in the API section above.
+- [x] `start_claim` on CLM-1004 sets attempts to 1. `fail_claim` with `The model timed out` sets `waiting`, attempts stay 1, and the last step is that reason.
+- [x] Starting and failing it again sets `left_for_handler` and attempts 2. Another `start_claim` returns 409.
+- [x] `fail_claim` on a waiting claim, a decided claim, and a claim waiting for sign-off each return 409 and change nothing.
+- [x] A second `record_decision` on a decided claim returns 409. A second pay still returns `already_paid`.
+- [x] On a fresh database, `GET /api/runs/latest` is `null`.
+- [x] `start_run` with cap 5 returns a running run, an empty list, and a start time. Cap 0 returns 422. A second `start_run` while it is running returns 409.
+- [x] `write_todos` with two items, then three, leaves exactly those three in order. Status `blocked` returns 422. An empty item returns 422. An unknown run returns 404.
+- [x] `finish_run` sets `finished`, a finish time, and the summary. Further todo writes return 409.
+- [x] vitest: the queue shows a Left for a handler tile.
+- [x] `uv run -m backend.seed` against a copy of the database leaves 25 waiting claims on the next startup.
+- [x] `npm run check` passes.
 
 ## Phase 3 — A fresh claim agent
 

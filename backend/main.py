@@ -37,6 +37,27 @@ class StatusBody(BaseModel):
     status: str = Field(examples=["in_progress"])
 
 
+class FailureBody(BaseModel):
+    reason: str
+
+
+class RunBody(BaseModel):
+    cap: int
+
+
+class TodoItem(BaseModel):
+    content: str
+    status: str
+
+
+class TodosBody(BaseModel):
+    todos: list[TodoItem]
+
+
+class SummaryBody(BaseModel):
+    summary: str
+
+
 @app.get("/api/health", operation_id="health")
 def health() -> dict[str, str]:
     """Check that the backend is running."""
@@ -121,6 +142,8 @@ def record_decision(claim_id: str, body: DecisionBody) -> dict[str, str]:
     )
     if status is None:
         raise HTTPException(status_code=404, detail="Claim not found")
+    if status == "already_decided":
+        raise HTTPException(status_code=409, detail="already_decided")
     return {"status": status}
 
 
@@ -157,6 +180,76 @@ def set_status(claim_id: str, body: StatusBody) -> dict[str, str]:
     if not store.set_status(db, claim_id, body.status):
         raise HTTPException(status_code=409, detail="Cannot set status")
     return {"status": body.status}
+
+
+@app.post("/api/claims/{claim_id}/start", operation_id="start_claim")
+def start_claim(claim_id: str) -> dict[str, int | str]:
+    """Start work on a waiting claim and add one attempt."""
+    ok, result = store.start_claim(db, claim_id)
+    if not ok:
+        if result == "not_found":
+            raise HTTPException(status_code=404, detail="Claim not found")
+        raise HTTPException(status_code=409, detail="Claim is not waiting")
+    return {"status": "in_progress", "attempts": int(result)}
+
+
+@app.post("/api/claims/{claim_id}/failure", operation_id="fail_claim")
+def fail_claim(claim_id: str, body: FailureBody) -> dict[str, str]:
+    """Record a failed attempt on a claim in progress."""
+    if not body.reason.strip():
+        raise HTTPException(status_code=422, detail="Reason is required")
+    ok, result = store.fail_claim(db, claim_id, body.reason)
+    if not ok:
+        if result == "not_found":
+            raise HTTPException(status_code=404, detail="Claim not found")
+        raise HTTPException(status_code=409, detail="Claim is not in progress")
+    return {"status": result}
+
+
+@app.post("/api/runs", operation_id="start_run")
+def start_run(body: RunBody) -> dict[str, Any]:
+    """Start a queue run with an empty to-do list."""
+    run, error = store.start_run(db, body.cap)
+    if error == "invalid_cap":
+        raise HTTPException(status_code=422, detail="Cap must be at least 1")
+    if error == "run_in_progress" or run is None:
+        raise HTTPException(status_code=409, detail="A run is already running")
+    return run
+
+
+@app.get("/api/runs/latest", operation_id="get_latest_run")
+def get_latest_run() -> dict[str, Any] | None:
+    """Return the newest run with its to-do list."""
+    return store.get_latest_run(db)
+
+
+@app.put("/api/runs/{run_id}/todos", operation_id="write_todos")
+def write_todos(run_id: int, body: TodosBody) -> dict[str, str]:
+    """Replace the to-do list of a running run."""
+    result = store.write_todos(db, run_id, [item.model_dump() for item in body.todos])
+    if result == "not_found":
+        raise HTTPException(status_code=404, detail="Run not found")
+    if result == "not_running":
+        raise HTTPException(status_code=409, detail="Run is not running")
+    if result == "invalid":
+        raise HTTPException(status_code=422, detail="Invalid to-do item")
+    return {"status": "ok"}
+
+
+@app.post("/api/runs/{run_id}/finish", operation_id="finish_run")
+def finish_run(run_id: int, body: SummaryBody) -> dict[str, Any]:
+    """Finish a running run with a summary for the handlers."""
+    result = store.finish_run(db, run_id, body.summary)
+    if result == "invalid":
+        raise HTTPException(status_code=422, detail="Summary is required")
+    if result == "not_found":
+        raise HTTPException(status_code=404, detail="Run not found")
+    if result == "not_running":
+        raise HTTPException(status_code=409, detail="Run is not running")
+    run = store.get_latest_run(db)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return run
 
 
 @app.post("/api/claims/{claim_id}/run", operation_id="run_claim")

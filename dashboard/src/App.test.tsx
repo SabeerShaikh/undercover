@@ -148,6 +148,7 @@ it("shows the claims queue", async () => {
   expect(screen.getByLabelText("Claims by decision")).toBeDefined();
   expect(screen.getByLabelText("Waiting: 1")).toBeDefined();
   expect(screen.getByLabelText("Waiting for sign-off: 1")).toBeDefined();
+  expect(screen.getByLabelText("Left for a handler: 0")).toBeDefined();
   expect(screen.getByLabelText("Approve: 1")).toBeDefined();
   expect(screen.getAllByText("$1,150.00").length).toBeGreaterThan(0);
 });

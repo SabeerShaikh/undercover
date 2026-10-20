@@ -6,6 +6,7 @@ const STATUS_ORDER: ClaimStatus[] = [
   "in_progress",
   "waiting_for_sign_off",
   "decided",
+  "left_for_handler",
 ];
 
 export interface StatusCount {

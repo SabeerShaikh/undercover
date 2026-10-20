@@ -341,6 +341,11 @@ nav button.active {
   color: var(--midnight);
 }
 
+.status-left_for_handler {
+  background: var(--raspberry);
+  color: #fff;
+}
+
 .claim-header {
   display: flex;
   justify-content: space-between;

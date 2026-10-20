@@ -1,5 +1,9 @@
 export type ClaimStatus =
-  "waiting" | "in_progress" | "waiting_for_sign_off" | "decided";
+  | "waiting"
+  | "in_progress"
+  | "waiting_for_sign_off"
+  | "decided"
+  | "left_for_handler";
 
 export interface QueueClaim {
   claim_id: string;
