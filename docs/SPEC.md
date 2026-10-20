@@ -8,20 +8,21 @@ UnderCover sells travel insurance on three plans: Economy, Premium and First. Ou
 
 ## The pilot
 
-We want an AI agent, the UnderCover Agent, to work the queue the way a handler does. For each claim it should:
+We want an AI agent, the UnderCover Agent, to work the queue the way a handler does. A queue agent plans a run and hands each claim to a fresh claim agent. For each claim the claim agent should:
 
 - read the claim, the customer's policy and claim history, and the sections of the policy wording and the claims manual that apply
 - approve, decline or refer the claim
 - work out the payout when it approves
 - explain the decision in two or three sentences, along with the relevant sections of the wording and the manual
 
-Our goal is to handle claims straight through, as accurately as our handlers do.
+If a claim agent fails, that claim goes back in the queue once. After a second failure it is left for a handler. Our goal is to handle claims straight through, as accurately as our handlers do.
 
 ## What the team needs to see
 
-- The queue, with where each claim stands: waiting, in progress, waiting for sign-off or decided.
-- Each claim in full, with the agent's decision and its reasons.
-- What the agent is doing on a claim while it works, step by step.
+- The queue, with where each claim stands: waiting, in progress, waiting for sign-off, decided or left for a handler.
+- The latest run: its cap, whether it is running or finished, the to-do list, and a summary when it finishes.
+- Each claim in full, with the agent's decision and its reasons, the sections it read, and its steps.
+- A claim that came back after a failed attempt, and a claim left for a handler.
 - The agent's instructions, read only.
 
 ## Rules

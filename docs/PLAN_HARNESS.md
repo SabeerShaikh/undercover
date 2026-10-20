@@ -199,13 +199,13 @@ Show the run, the to-do list, a claim left for a handler, and the sections the a
 
 Watch one capped run on the dashboard, and update `docs/SPEC.md`, `docs/TECH_STACK.md`, and `docs/STATUS.md`.
 
-- [ ] Live, in the browser, after a reseed, with `/` open: start `uv run -m agent --cap 5`. During the run the to-do list appears, items move from To do to In progress to Done, and claims leave In progress, without a reload. The page ends on Finished and the summary.
-- [ ] Live: a claim opened during the run shows its steps and at least one section of the manual.
-- [ ] Live: afterwards the queue shows 20 waiting and none in progress.
-- [ ] `docs/SPEC.md` describes the run, the to-do list, a fresh claim agent, retries, claims left for a handler, and the sections read.
-- [ ] `docs/TECH_STACK.md` names DeepSeek V4.1 Flash and the two entry points, `run_queue(cap)` and `work_claim(claim_id)`.
-- [ ] `docs/STATUS.md` says how to reseed, how to work the queue, a capped run, and one claim.
-- [ ] `npm run check` passes.
+- [x] Live, in the browser, after a reseed, with `/` open: start `uv run -m agent --cap 5`. During the run the to-do list appears, items move from To do to In progress to Done, and claims leave In progress, without a reload. The page ends on Finished and the summary.
+- [x] Live: a claim opened during the run shows its steps and at least one section of the manual.
+- [x] Live: afterwards the queue shows 20 waiting and none in progress.
+- [x] `docs/SPEC.md` describes the run, the to-do list, a fresh claim agent, retries, claims left for a handler, and the sections read.
+- [x] `docs/TECH_STACK.md` names DeepSeek V4.1 Flash and the two entry points, `run_queue(cap)` and `work_claim(claim_id)`.
+- [x] `docs/STATUS.md` says how to reseed, how to work the queue, a capped run, and one claim.
+- [x] `npm run check` passes.
 
 ## Not in this plan
 
