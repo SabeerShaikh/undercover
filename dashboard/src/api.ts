@@ -1,4 +1,4 @@
-import type { ClaimDetail, QueueClaim } from "./types";
+import type { ClaimDetail, QueueClaim, QueueRun } from "./types";
 
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -22,6 +22,10 @@ export interface InstructionsText {
 
 export async function fetchInstructions(): Promise<InstructionsText> {
   return readJson<InstructionsText>(await fetch("/api/instructions"));
+}
+
+export async function fetchLatestRun(): Promise<QueueRun | null> {
+  return readJson<QueueRun | null>(await fetch("/api/runs/latest"));
 }
 
 export async function signOffClaim(claimId: string): Promise<void> {

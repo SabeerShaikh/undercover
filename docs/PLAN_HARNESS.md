@@ -188,12 +188,12 @@ Show the run, the to-do list, a claim left for a handler, and the sections the a
 
 **Why the page only watches.** Handlers need to see the plan fill in. Starting the queue from the page would add a second way to launch a run that spends money. The command line is the start; the page follows the records.
 
-- [ ] vitest covers the run panel before the first run, while running, and when finished with a summary; a claim id in an item opening that claim; a claim back in the queue; a claim left for a handler; and the sections read, each once.
-- [ ] Playwright: start a run capped at 2 and write two to-do items naming CLM-1013 and CLM-1014. Without a reload, the queue shows both as To do, then follows them to In progress and Done. After the test finishes the run, the page shows Finished and the summary. The CLM-1013 link opens that claim.
-- [ ] Playwright: start CLM-1016, record a reading step, and fail it. The claim page says it is back in the queue. Fail it again. The page shows Left for a handler, the section under sections read, and two Failed steps, without a reload.
-- [ ] Browser: each to-do status and Left for a handler use the colors in the states section. Light and dark keep the brand surfaces: page `#F0F4F5` / `#04232E`, white / black panels, no outline and no bar across the top.
-- [ ] Browser: a reading step shows Read and the section. A failed step shows Failed and its reason.
-- [ ] `npm run check` passes.
+- [x] vitest covers the run panel before the first run, while running, and when finished with a summary; a claim id in an item opening that claim; a claim back in the queue; a claim left for a handler; and the sections read, each once.
+- [x] Playwright: start a run capped at 2 and write two to-do items naming CLM-1013 and CLM-1014. Without a reload, the queue shows both as To do, then follows them to In progress and Done. After the test finishes the run, the page shows Finished and the summary. The CLM-1013 link opens that claim.
+- [x] Playwright: start CLM-1016, record a reading step, and fail it. The claim page says it is back in the queue. Fail it again. The page shows Left for a handler, the section under sections read, and two Failed steps, without a reload.
+- [x] Browser: each to-do status and Left for a handler use the colors in the states section. Light and dark keep the brand surfaces: page `#F0F4F5` / `#04232E`, white / black panels, no outline and no bar across the top.
+- [x] Browser: a reading step shows Read and the section. A failed step shows Failed and its reason.
+- [x] `npm run check` passes.
 
 ## Phase 6 — A trial on five claims
 

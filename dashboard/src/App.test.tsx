@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { App } from "./App";
-import type { ClaimDetail, QueueClaim } from "./types";
+import type { ClaimDetail, QueueClaim, QueueRun } from "./types";
 
 afterEach(() => {
   cleanup();
@@ -63,6 +63,7 @@ const claim1001: ClaimDetail = {
   policy_section: null,
   signed_off: false,
   paid_amount: null,
+  attempts: 0,
   policy: {
     policy_id: "POL-2001",
     plan: "premium",
@@ -136,8 +137,27 @@ function requestUrl(input: RequestInfo | URL): string {
   return input.url;
 }
 
+function queueFetch(
+  extra?: (url: string, method: string) => Response | undefined,
+  run: QueueRun | null = null,
+) {
+  return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    const url = requestUrl(input);
+    const method = init?.method ?? "GET";
+    if (url.endsWith("/api/runs/latest")) {
+      return Promise.resolve(jsonResponse(run));
+    }
+    const custom = extra?.(url, method);
+    if (custom) return Promise.resolve(custom);
+    if (url.endsWith("/api/claims") && method === "GET") {
+      return Promise.resolve(jsonResponse(queue));
+    }
+    return Promise.resolve(jsonResponse({}, 404));
+  });
+}
+
 it("shows the claims queue", async () => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(queue)));
+  vi.stubGlobal("fetch", queueFetch());
   render(<App />);
   expect(await screen.findByText("CLM-1001")).toBeDefined();
   expect(screen.getByText("Maya Patel")).toBeDefined();
@@ -154,16 +174,15 @@ it("shows the claims queue", async () => {
 });
 
 it("opens a claim with story, items, documents and policy", async () => {
-  const fetchMock = vi.fn((input: RequestInfo | URL) => {
-    const url = requestUrl(input);
-    if (url.endsWith("/api/claims"))
-      return Promise.resolve(jsonResponse(queue));
-    if (url.includes("/api/claims/CLM-1001")) {
-      return Promise.resolve(jsonResponse(claim1001));
-    }
-    return Promise.resolve(jsonResponse({}, 404));
-  });
-  vi.stubGlobal("fetch", fetchMock);
+  vi.stubGlobal(
+    "fetch",
+    queueFetch((url) => {
+      if (url.includes("/api/claims/CLM-1001")) {
+        return jsonResponse(claim1001);
+      }
+      return undefined;
+    }),
+  );
   render(<App />);
   fireEvent.click(
     await screen.findByRole("button", { name: "Open claim CLM-1001" }),
@@ -179,30 +198,23 @@ it("opens a claim with story, items, documents and policy", async () => {
 
 it("shows a decision and signs off a waiting claim", async () => {
   let current = claim1002;
-  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-    const url = requestUrl(input);
-    const method = init?.method ?? "GET";
-    if (url.endsWith("/api/claims") && method === "GET") {
-      return Promise.resolve(jsonResponse(queue));
-    }
-    if (url.includes("/sign-off")) {
-      current = { ...current, signed_off: true };
-      return Promise.resolve(jsonResponse({ status: "signed_off" }));
-    }
-    if (url.includes("/pay")) {
-      current = {
-        ...current,
-        status: "decided",
-        paid_amount: 1150,
-      };
-      return Promise.resolve(jsonResponse({ status: "paid" }));
-    }
-    if (url.includes("/api/claims/CLM-1002")) {
-      return Promise.resolve(jsonResponse(current));
-    }
-    return Promise.resolve(jsonResponse({}, 404));
-  });
-  vi.stubGlobal("fetch", fetchMock);
+  vi.stubGlobal(
+    "fetch",
+    queueFetch((url, method) => {
+      if (url.includes("/sign-off")) {
+        current = { ...current, signed_off: true };
+        return jsonResponse({ status: "signed_off" });
+      }
+      if (url.includes("/pay")) {
+        current = { ...current, status: "decided", paid_amount: 1150 };
+        return jsonResponse({ status: "paid" });
+      }
+      if (url.includes("/api/claims/CLM-1002")) {
+        return jsonResponse(current);
+      }
+      return method === "GET" ? undefined : jsonResponse({}, 404);
+    }),
+  );
   render(<App />);
   fireEvent.click(
     await screen.findByRole("button", { name: "Open claim CLM-1002" }),
@@ -217,25 +229,23 @@ it("shows a decision and signs off a waiting claim", async () => {
 
 it("starts the agent on a waiting claim", async () => {
   let current: ClaimDetail = claim1001;
-  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-    const url = requestUrl(input);
-    const method = init?.method ?? "GET";
-    if (url.endsWith("/api/claims"))
-      return Promise.resolve(jsonResponse(queue));
-    if (url.endsWith("/run") && method === "POST") {
-      current = {
-        ...current,
-        status: "in_progress",
-        steps: [{ tool_name: "get_claim", detail: "Read claim CLM-1001" }],
-      };
-      return Promise.resolve(jsonResponse({ status: "started" }));
-    }
-    if (url.includes("/api/claims/CLM-1001")) {
-      return Promise.resolve(jsonResponse(current));
-    }
-    return Promise.resolve(jsonResponse({}, 404));
-  });
-  vi.stubGlobal("fetch", fetchMock);
+  vi.stubGlobal(
+    "fetch",
+    queueFetch((url, method) => {
+      if (url.endsWith("/run") && method === "POST") {
+        current = {
+          ...current,
+          status: "in_progress",
+          steps: [{ tool_name: "get_claim", detail: "Read claim CLM-1001" }],
+        };
+        return jsonResponse({ status: "started" });
+      }
+      if (url.includes("/api/claims/CLM-1001")) {
+        return jsonResponse(current);
+      }
+      return undefined;
+    }),
+  );
   render(<App />);
   fireEvent.click(
     await screen.findByRole("button", { name: "Open claim CLM-1001" }),
@@ -248,18 +258,15 @@ it("starts the agent on a waiting claim", async () => {
 it("shows read-only instructions", async () => {
   const queueText = "You run the UnderCover claims queue.";
   const claimText = "You are the UnderCover Agent.";
-  const fetchMock = vi.fn((input: RequestInfo | URL) => {
-    const url = requestUrl(input);
-    if (url.endsWith("/api/claims"))
-      return Promise.resolve(jsonResponse(queue));
-    if (url.endsWith("/api/instructions")) {
-      return Promise.resolve(
-        jsonResponse({ queue: queueText, claim: claimText }),
-      );
-    }
-    return Promise.resolve(jsonResponse({}, 404));
-  });
-  vi.stubGlobal("fetch", fetchMock);
+  vi.stubGlobal(
+    "fetch",
+    queueFetch((url) => {
+      if (url.endsWith("/api/instructions")) {
+        return jsonResponse({ queue: queueText, claim: claimText });
+      }
+      return undefined;
+    }),
+  );
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: "Instructions" }));
   expect(
@@ -271,4 +278,130 @@ it("shows read-only instructions", async () => {
   expect(screen.getByText(queueText)).toBeDefined();
   expect(screen.getByText(claimText)).toBeDefined();
   expect(screen.queryByRole("textbox")).toBeNull();
+});
+
+it("shows no run yet before the first run", async () => {
+  vi.stubGlobal("fetch", queueFetch());
+  render(<App />);
+  expect(await screen.findByText("No run yet")).toBeDefined();
+});
+
+it("shows a running run and opens a claim from a to-do item", async () => {
+  const running: QueueRun = {
+    id: 1,
+    cap: 2,
+    status: "running",
+    summary: null,
+    started_at: "2026-01-01T00:00:00Z",
+    finished_at: null,
+    todos: [
+      { content: "Work CLM-1013", status: "in_progress" },
+      { content: "Work CLM-1014", status: "to_do" },
+    ],
+  };
+  vi.stubGlobal(
+    "fetch",
+    queueFetch((url) => {
+      if (url.includes("/api/claims/CLM-1013")) {
+        return jsonResponse({ ...claim1001, claim_id: "CLM-1013" });
+      }
+      return undefined;
+    }, running),
+  );
+  render(<App />);
+  expect(await screen.findByText(/Running/)).toBeDefined();
+  expect(screen.getByText(/Cap 2/)).toBeDefined();
+  expect(screen.getByText("To do")).toBeDefined();
+  fireEvent.click(screen.getByRole("button", { name: "CLM-1013" }));
+  expect(
+    await screen.findByRole("heading", { name: "CLM-1013" }),
+  ).toBeDefined();
+});
+
+it("shows a finished run with its summary", async () => {
+  const finished: QueueRun = {
+    id: 2,
+    cap: 5,
+    status: "finished",
+    summary: "Five claims decided.",
+    started_at: "2026-01-01T00:00:00Z",
+    finished_at: "2026-01-01T00:10:00Z",
+    todos: [{ content: "Work CLM-1001", status: "done" }],
+  };
+  vi.stubGlobal("fetch", queueFetch(undefined, finished));
+  render(<App />);
+  expect(await screen.findByText(/Finished/)).toBeDefined();
+  expect(screen.getByText("Five claims decided.")).toBeDefined();
+  expect(screen.getByText("Done")).toBeDefined();
+});
+
+it("says a claim came back after a failed attempt", async () => {
+  const returned: ClaimDetail = {
+    ...claim1001,
+    attempts: 1,
+    steps: [{ tool_name: "error", detail: "The model timed out" }],
+  };
+  vi.stubGlobal(
+    "fetch",
+    queueFetch((url) => {
+      if (url.includes("/api/claims/CLM-1001")) return jsonResponse(returned);
+      return undefined;
+    }),
+  );
+  render(<App />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Open claim CLM-1001" }),
+  );
+  expect(
+    await screen.findByText("This claim came back after a failed attempt."),
+  ).toBeDefined();
+  expect(screen.getByText("Failed The model timed out")).toBeDefined();
+});
+
+it("shows a claim left for a handler and each section once", async () => {
+  const left: ClaimDetail = {
+    ...claim1001,
+    status: "left_for_handler",
+    attempts: 2,
+    steps: [
+      {
+        tool_name: "reading",
+        detail: "Claims manual, section 9: Repeat claims",
+      },
+      {
+        tool_name: "reading",
+        detail: "Claims manual, section 9: Repeat claims",
+      },
+      { tool_name: "error", detail: "Timed out" },
+      { tool_name: "error", detail: "Timed out again" },
+    ],
+  };
+  vi.stubGlobal(
+    "fetch",
+    queueFetch((url) => {
+      if (url.includes("/api/claims/CLM-1001")) return jsonResponse(left);
+      return undefined;
+    }),
+  );
+  render(<App />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Open claim CLM-1001" }),
+  );
+  expect(
+    await screen.findByText(
+      "This claim was left for a handler after two failed attempts.",
+    ),
+  ).toBeDefined();
+  expect(screen.getByText("Left for a handler")).toBeDefined();
+  expect(screen.getByText("Sections read")).toBeDefined();
+  expect(
+    screen.getAllByText("Claims manual, section 9: Repeat claims", {
+      exact: true,
+    }),
+  ).toHaveLength(1);
+  expect(
+    screen.getAllByText("Read Claims manual, section 9: Repeat claims"),
+  ).toHaveLength(2);
+  expect(screen.getByText("Failed Timed out")).toBeDefined();
+  expect(screen.getByText("Failed Timed out again")).toBeDefined();
 });

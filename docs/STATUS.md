@@ -4,8 +4,8 @@ The claims pilot is running, with lookup of the policy wording and the claims ma
 
 - `backend/`: SQLite store seeded from `data/` into `undercover.db` (gitignored; override with `UNDERCOVER_DB`). Claims API for the queue, claim detail, policy wording, claims manual sections (`search_documents`, `read_section`), queue and claim instructions, decision, sign-off, pay, steps, start, failure (`left_for_handler` after two attempts), runs and to-do lists, and `POST /api/claims/{id}/run` to start the agent in a background thread. `uv run -m backend.seed` rebuilds the database.
 - `agent/`: `run_queue(cap)` recovers stuck claims, then a queue agent lists waiting claims, writes a to-do list, and hands each one to `work_claim` on a new thread. The harness enforces the cap, reminds the queue agent of missed claims inside the cap, and reports each claim from the record. A failed claim goes back once, then is left for a handler. Default model is DeepSeek V4.1 Flash.
-- `dashboard/`: branded queue, claim view (with run, steps, and sign-off), and read-only instructions for running the queue and working a claim. Light and dark surfaces follow `docs/BRAND.md`.
-- `e2e/`: Playwright covers the queue, claim detail, instructions, and sign-off path (no model calls).
+- `dashboard/`: branded queue with a live run panel (cap, status, to-do list, summary), claim view (sections read, Failed steps, claims left for a handler, sign-off), and read-only instructions. Light and dark surfaces follow `docs/BRAND.md`.
+- `e2e/`: Playwright covers the queue, claim detail, instructions, sign-off, the run panel, and a claim left for a handler (no model calls).
 
 ## How to run
 

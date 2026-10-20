@@ -3,6 +3,7 @@ import {
   fetchClaim,
   fetchClaims,
   fetchInstructions,
+  fetchLatestRun,
   signOffAndPay,
   startAgent,
 } from "./api";
@@ -10,11 +11,12 @@ import { ClaimView } from "./ClaimView";
 import { Instructions } from "./Instructions";
 import { Queue } from "./Queue";
 import type { InstructionsText } from "./api";
-import type { ClaimDetail, QueueClaim, View } from "./types";
+import type { ClaimDetail, QueueClaim, QueueRun, View } from "./types";
 
 export function App() {
   const [view, setView] = useState<View>({ name: "queue" });
   const [claims, setClaims] = useState<QueueClaim[]>([]);
+  const [run, setRun] = useState<QueueRun | null>(null);
   const [claim, setClaim] = useState<ClaimDetail | null>(null);
   const [instructions, setInstructions] = useState<InstructionsText>({
     queue: "",
@@ -27,9 +29,12 @@ export function App() {
     if (view.name !== "queue") return;
     let cancelled = false;
     const load = () => {
-      void fetchClaims()
-        .then((next) => {
-          if (!cancelled) setClaims(next);
+      void Promise.all([fetchClaims(), fetchLatestRun()])
+        .then(([nextClaims, nextRun]) => {
+          if (!cancelled) {
+            setClaims(nextClaims);
+            setRun(nextRun);
+          }
         })
         .catch(() => {
           if (!cancelled) setError("Could not load the claims queue.");
@@ -139,6 +144,7 @@ export function App() {
       {view.name === "queue" && (
         <Queue
           claims={claims}
+          run={run}
           onOpen={(claimId) => {
             setError("");
             setClaim(null);

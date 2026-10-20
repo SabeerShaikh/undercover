@@ -42,12 +42,30 @@ export interface ClaimStep {
   detail: string;
 }
 
+export type TodoStatus = "to_do" | "in_progress" | "done" | "left_for_handler";
+
+export interface RunTodo {
+  content: string;
+  status: TodoStatus;
+}
+
+export interface QueueRun {
+  id: number;
+  cap: number;
+  status: "running" | "finished";
+  summary: string | null;
+  started_at: string;
+  finished_at: string | null;
+  todos: RunTodo[];
+}
+
 export interface ClaimDetail {
   claim_id: string;
   summary: string;
   story: string;
   amount_claimed: number;
   status: ClaimStatus;
+  attempts: number;
   items: ClaimItem[];
   documents: ClaimDocument[];
   decision: string | null;

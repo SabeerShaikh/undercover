@@ -1,6 +1,78 @@
 import { formatUsd } from "./money";
 import { statusClass, statusLabel } from "./statusLabel";
-import type { ClaimDetail } from "./types";
+import type { ClaimDetail, ClaimStep } from "./types";
+
+function stepLine(step: ClaimStep) {
+  if (step.tool_name === "reading") {
+    return <>Read {step.detail}</>;
+  }
+  if (step.tool_name === "error") {
+    return <>Failed {step.detail}</>;
+  }
+  return (
+    <>
+      <span className="mono">{step.tool_name}</span>: {step.detail}
+    </>
+  );
+}
+
+function uniqueReadings(steps: ClaimStep[]): string[] {
+  const readings: string[] = [];
+  const seen = new Set<string>();
+  for (const step of steps) {
+    if (step.tool_name === "reading" && !seen.has(step.detail)) {
+      seen.add(step.detail);
+      readings.push(step.detail);
+    }
+  }
+  return readings;
+}
+
+function ClaimNotices({ claim }: Readonly<{ claim: ClaimDetail }>) {
+  if (claim.status === "left_for_handler") {
+    return (
+      <p className="notice">
+        This claim was left for a handler after two failed attempts.
+      </p>
+    );
+  }
+  if (claim.status === "waiting" && claim.attempts > 0) {
+    return (
+      <p className="notice">This claim came back after a failed attempt.</p>
+    );
+  }
+  return null;
+}
+
+function ClaimActions({
+  claim,
+  busy,
+  onSignOff,
+  onRun,
+}: Readonly<{
+  claim: ClaimDetail;
+  busy: boolean;
+  onSignOff: () => void;
+  onRun: () => void;
+}>) {
+  const canRun =
+    claim.status === "waiting" ||
+    (claim.status === "in_progress" && !claim.decision);
+  return (
+    <div className="actions">
+      {canRun && (
+        <button type="button" disabled={busy} onClick={onRun}>
+          Run agent
+        </button>
+      )}
+      {claim.status === "waiting_for_sign_off" && (
+        <button type="button" disabled={busy} onClick={onSignOff}>
+          Sign off and pay
+        </button>
+      )}
+    </div>
+  );
+}
 
 interface Props {
   readonly claim: ClaimDetail;
@@ -18,6 +90,7 @@ export function ClaimView({
   onBack,
 }: Readonly<Props>) {
   const planName = claim.plan?.name ?? claim.policy.plan;
+  const readings = uniqueReadings(claim.steps);
   return (
     <section className="panel claim">
       <button type="button" className="link" onClick={onBack}>
@@ -33,19 +106,13 @@ export function ClaimView({
         </span>
       </header>
 
-      <div className="actions">
-        {(claim.status === "waiting" ||
-          (claim.status === "in_progress" && !claim.decision)) && (
-          <button type="button" disabled={busy} onClick={onRun}>
-            Run agent
-          </button>
-        )}
-        {claim.status === "waiting_for_sign_off" && (
-          <button type="button" disabled={busy} onClick={onSignOff}>
-            Sign off and pay
-          </button>
-        )}
-      </div>
+      <ClaimNotices claim={claim} />
+      <ClaimActions
+        claim={claim}
+        busy={busy}
+        onSignOff={onSignOff}
+        onRun={onRun}
+      />
 
       <div className="grid">
         <article>
@@ -119,13 +186,24 @@ export function ClaimView({
         </article>
       )}
 
+      {readings.length > 0 && (
+        <article>
+          <h3>Sections read</h3>
+          <ul>
+            {readings.map((detail) => (
+              <li key={detail}>{detail}</li>
+            ))}
+          </ul>
+        </article>
+      )}
+
       {claim.steps.length > 0 && (
         <article>
           <h3>Agent steps</h3>
           <ol className="steps">
             {claim.steps.map((step, index) => (
               <li key={`${step.tool_name}-${String(index)}`}>
-                <span className="mono">{step.tool_name}</span>: {step.detail}
+                {stepLine(step)}
               </li>
             ))}
           </ol>

@@ -1,14 +1,43 @@
 import { formatUsd } from "./money";
 import { countByDecision, countByStatus, decisionLabel } from "./queueStats";
 import { statusClass, statusLabel } from "./statusLabel";
-import type { QueueClaim } from "./types";
+import { todoClass, todoLabel } from "./todoStatus";
+import type { QueueClaim, QueueRun } from "./types";
 
 interface Props {
   readonly claims: QueueClaim[];
+  readonly run: QueueRun | null;
   readonly onOpen: (claimId: string) => void;
 }
 
-export function Queue({ claims, onOpen }: Readonly<Props>) {
+function TodoContent({
+  content,
+  onOpen,
+}: Readonly<{ content: string; onOpen: (claimId: string) => void }>) {
+  const parts = content.split(/(CLM-\d+)/g);
+  return (
+    <>
+      {parts.map((part, index) =>
+        /^CLM-\d+$/.test(part) ? (
+          <button
+            key={`${part}-${String(index)}`}
+            type="button"
+            className="link"
+            onClick={() => {
+              onOpen(part);
+            }}
+          >
+            {part}
+          </button>
+        ) : (
+          <span key={`${part}-${String(index)}`}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+export function Queue({ claims, run, onOpen }: Readonly<Props>) {
   const statusCounts = countByStatus(claims);
   const decisionCounts = countByDecision(claims);
   const openCount = claims.filter((claim) => claim.status !== "decided").length;
@@ -60,6 +89,39 @@ export function Queue({ claims, onOpen }: Readonly<Props>) {
           ))}
         </section>
       </div>
+
+      <section className="panel run-panel" aria-label="Latest run">
+        <h3 className="stats-label">Latest run</h3>
+        {run === null ? (
+          <p className="lede">No run yet</p>
+        ) : (
+          <>
+            <p className="lede">
+              Cap {run.cap} ·{" "}
+              {run.status === "running" ? "Running" : "Finished"}
+            </p>
+            {run.todos.length === 0 ? (
+              <p className="lede">No to-do items yet</p>
+            ) : (
+              <ul className="todo-list">
+                {run.todos.map((item, index) => (
+                  <li key={`${item.content}-${String(index)}`}>
+                    <span className={todoClass(item.status)}>
+                      {todoLabel(item.status)}
+                    </span>
+                    <span>
+                      <TodoContent content={item.content} onOpen={onOpen} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {run.status === "finished" && run.summary && (
+              <p className="run-summary">{run.summary}</p>
+            )}
+          </>
+        )}
+      </section>
 
       <section className="panel table-scroll">
         <table className="queue-table">
