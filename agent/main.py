@@ -180,6 +180,10 @@ CLAIM_TOOLS = (
     "pay_claim",
 )
 
+QUEUE_TOOLS = ("list_claims", "write_todos", "work_claim")
+MISSED_REMINDERS = 2
+STUCK_REASON = "The run stopped before this claim was finished"
+
 
 def fetch_instructions() -> str:
     """Load the claim agent's instructions from the backend API."""
@@ -187,6 +191,14 @@ def fetch_instructions() -> str:
         response = client.get("/api/instructions")
     response.raise_for_status()
     return response.json()["claim"]
+
+
+def fetch_queue_instructions() -> str:
+    """Load the queue agent's instructions from the backend API."""
+    with backend() as client:
+        response = client.get("/api/instructions")
+    response.raise_for_status()
+    return response.json()["queue"]
 
 
 def _load_claim(claim_id: str) -> dict[str, Any]:
@@ -258,6 +270,188 @@ def work_claim(claim_id: str, llm: BaseChatModel | None = None) -> str:
         return format_report(_load_claim(claim_id))
     _fail_if_undecided(claim_id, "The agent finished without recording a decision")
     return format_report(_load_claim(claim_id))
+
+
+def _list_queue() -> list[dict[str, Any]]:
+    with backend() as client:
+        response = client.get("/api/claims")
+    response.raise_for_status()
+    return response.json()
+
+
+def recover_stuck_claims(reason: str = STUCK_REASON) -> None:
+    """Put claims left in_progress back in the queue, or leave them for a handler."""
+    for claim in _list_queue():
+        if claim["status"] != "in_progress":
+            continue
+        with backend() as client:
+            client.post(
+                f"/api/claims/{claim['claim_id']}/failure",
+                json={"reason": reason},
+            )
+
+
+def _waiting_ids() -> list[str]:
+    return [
+        claim["claim_id"] for claim in _list_queue() if claim["status"] == "waiting"
+    ]
+
+
+def _missed_inside_cap(started: set[str], cap: int) -> list[str]:
+    waiting = _waiting_ids()
+    if len(started) < cap:
+        return waiting
+    return [claim_id for claim_id in waiting if claim_id in started]
+
+
+def _last_ai_text(result: dict[str, Any]) -> str:
+    for message in reversed(result.get("messages", [])):
+        if getattr(message, "type", None) != "ai":
+            continue
+        text = getattr(message, "text", None)
+        if isinstance(text, str) and text.strip():
+            return text.strip()
+        content = getattr(message, "content", "")
+        if isinstance(content, str) and content.strip():
+            return content.strip()
+    return "Run finished."
+
+
+def _finish_run(run_id: int, summary: str) -> None:
+    with backend() as client:
+        client.post(f"/api/runs/{run_id}/finish", json={"summary": summary})
+
+
+def _queue_tools(
+    run_id: int,
+    cap: int,
+    started: set[str],
+    claim_llm: BaseChatModel | None,
+) -> list[StructuredTool]:
+    class TodoItem(BaseModel):
+        content: str = Field(description="The item, naming the claim id when it is one")
+        status: str = Field(description="to_do, in_progress, done, or left_for_handler")
+
+    class TodosArgs(BaseModel):
+        todos: list[TodoItem]
+
+    class WorkArgs(BaseModel):
+        claim_id: str = Field(description="The claim to work, such as CLM-1001")
+
+    def list_claims() -> str:
+        return json.dumps(_list_queue())
+
+    def write_todos(todos: list[Any]) -> str:
+        payload = []
+        for item in todos:
+            if isinstance(item, dict):
+                payload.append(
+                    {
+                        "content": item.get("content", ""),
+                        "status": item.get("status", ""),
+                    }
+                )
+            else:
+                payload.append(item.model_dump())
+        with backend() as client:
+            response = client.put(
+                f"/api/runs/{run_id}/todos",
+                json={"todos": payload},
+            )
+        if response.status_code >= HTTPStatus.BAD_REQUEST:
+            return json.dumps({"status": "refused", "detail": response.json()})
+        return json.dumps(response.json())
+
+    def work_one(claim_id: str) -> str:
+        if claim_id not in started and len(started) >= cap:
+            return f"{claim_id}  not started: this run's cap is {cap}"
+        report = work_claim(claim_id, claim_llm)
+        if "not started" not in report:
+            started.add(claim_id)
+        print(report)
+        return report
+
+    return [
+        StructuredTool.from_function(
+            list_claims,
+            name="list_claims",
+            description="List claims in the queue with their statuses.",
+        ),
+        StructuredTool.from_function(
+            write_todos,
+            name="write_todos",
+            description="Replace this run's to-do list.",
+            args_schema=TodosArgs,
+        ),
+        StructuredTool.from_function(
+            work_one,
+            name="work_claim",
+            description="Hand one claim to a fresh claim agent and get its report.",
+            args_schema=WorkArgs,
+        ),
+    ]
+
+
+def run_queue(
+    cap: int | None = None,
+    llm: BaseChatModel | None = None,
+    claim_llm: BaseChatModel | None = None,
+) -> str:
+    """Work waiting claims through a queue agent, up to cap, and return the summary."""
+    recover_stuck_claims()
+    waiting = _waiting_ids()
+    if not waiting:
+        print("No claims are waiting")
+        return "No claims are waiting"
+    limit = cap if cap is not None else max(len(waiting), 1)
+    with backend() as client:
+        started_run = client.post("/api/runs", json={"cap": limit})
+    started_run.raise_for_status()
+    run = started_run.json()
+    run_id = int(run["id"])
+    started: set[str] = set()
+    agent = create_agent(
+        llm or model(),
+        tools=_queue_tools(run_id, limit, started, claim_llm),
+        system_prompt=fetch_queue_instructions(),
+    )
+    messages: list[Any] = [
+        {
+            "role": "user",
+            "content": (
+                f"Work the queue. You may start at most {limit} claims this run."
+            ),
+        }
+    ]
+    summary = "Run finished."
+    reminders = 0
+    try:
+        while True:
+            result = agent.invoke(
+                {"messages": messages},
+                config={"recursion_limit": STEP_LIMIT},
+            )
+            summary = _last_ai_text(result)
+            leftover = _missed_inside_cap(started, limit)
+            if not leftover or reminders >= MISSED_REMINDERS:
+                break
+            reminders += 1
+            named = ", ".join(leftover)
+            messages = list(result["messages"]) + [
+                {
+                    "role": "user",
+                    "content": (
+                        "These claims are still waiting and fit in the cap: "
+                        f"{named}. Work them before you finish."
+                    ),
+                }
+            ]
+    except Exception as exc:
+        recover_stuck_claims()
+        summary = f"The run stopped: {exc}"
+    _finish_run(run_id, summary)
+    print(summary)
+    return summary
 
 
 def run(claim_id: str, thread_id: str, llm: BaseChatModel | None = None) -> str:

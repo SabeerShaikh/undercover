@@ -27,15 +27,13 @@ def test_waiting_claim_ids(api: TestClient):
     assert len(ids) == 25
 
 
-def test_main_cli_runs_waiting_claims(api: TestClient, monkeypatch: pytest.MonkeyPatch):
-    calls: list[str] = []
+def test_main_cli_runs_the_queue(api: TestClient, monkeypatch: pytest.MonkeyPatch):
+    caps: list[int | None] = []
 
-    def fake_work(claim_id: str, llm=None) -> str:
-        calls.append(claim_id)
-        return f"done {claim_id}"
+    def fake_queue(cap: int | None = None, llm=None, claim_llm=None) -> str:
+        caps.append(cap)
+        return "queued"
 
-    monkeypatch.setattr(main, "work_claim", fake_work)
-    # Only process the first two waiting claims for a fast test.
-    monkeypatch.setattr(cli, "waiting_claim_ids", lambda: ["CLM-1001", "CLM-1002"])
+    monkeypatch.setattr(main, "run_queue", fake_queue)
     assert cli.main_cli([]) == 0
-    assert calls == ["CLM-1001", "CLM-1002"]
+    assert caps == [None]

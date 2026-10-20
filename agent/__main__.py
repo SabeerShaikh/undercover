@@ -1,4 +1,4 @@
-"""Run the UnderCover Agent: uv run -m agent [CLM-1001]."""
+"""Run the UnderCover Agent: uv run -m agent [--cap N] [CLM-1001]."""
 
 from __future__ import annotations
 
@@ -20,16 +20,22 @@ def waiting_claim_ids() -> list[str]:
 
 
 def main_cli(argv: list[str] | None = None) -> int:
-    """Work one named claim, or every waiting claim."""
+    """Work one named claim, or run the queue, optionally capped."""
     parser = argparse.ArgumentParser(description="Run the UnderCover Agent.")
     parser.add_argument("claim", nargs="?", help="Work this claim only")
+    parser.add_argument(
+        "--cap",
+        type=int,
+        help="Maximum number of claims this queue run may start",
+    )
     args = parser.parse_args(argv)
 
     try:
         if args.claim:
             print(main.work_claim(args.claim))
             return 0
-        claim_ids = waiting_claim_ids()
+        main.run_queue(args.cap)
+        return 0
     except (httpx.HTTPError, OSError) as exc:
         print(
             "Could not reach the backend at http://localhost:8000.\n"
@@ -38,16 +44,6 @@ def main_cli(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 1
-
-    if not claim_ids:
-        print("No waiting claims.")
-        return 0
-
-    print(f"Running the agent on {len(claim_ids)} waiting claim(s).")
-    for claim_id in claim_ids:
-        print(f"\n=== {claim_id} ===")
-        print(main.work_claim(claim_id))
-    return 0
 
 
 if __name__ == "__main__":

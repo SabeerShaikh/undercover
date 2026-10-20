@@ -167,20 +167,20 @@ Replace the Python loop with `run_queue(cap)`: recovery of stuck claims, the thr
 
 **Why the check is outside the model.** The brief says the agent must not miss a waiting claim inside its cap. A reminder injected when it tries to finish is something a test can force. A sentence in the prompt is not.
 
-- [ ] The queue agent's tools are exactly `list_claims`, `write_todos`, and `work_claim`.
-- [ ] Stub run of three waiting claims: it lists them, writes the list, marks each item in progress and then done around `work_claim`, and finishes with a summary. All three are decided. The latest run is `finished` with that summary and every item `done`. The first message states the cap.
-- [ ] Cap 2 with four waiting: `work_claim` on a third new claim is refused and the refusal names the cap. Two claims are worked. The other two stay `waiting` with 0 attempts.
-- [ ] The claim model raises on the first of three claims. The other two are still decided and the run finishes.
-- [ ] A claim that fails once is `waiting`. The stub calls `work_claim` on it again, which the cap allows, and it is decided. Its steps show both attempts with the error between them.
-- [ ] A claim that fails both attempts is `left_for_handler`. The report says so. The other claims in the run are still decided.
-- [ ] The stub tries to finish while a claim it started is back in the queue. The harness names that claim. The stub works it, then the run finishes. A stub that ignores the reminder gets two, then the run finishes anyway.
-- [ ] A claim left `in_progress` before the run starts goes back to the queue with the reason `The run stopped before this claim was finished`, and this run can work it.
-- [ ] If the queue model raises, the run finishes with a summary starting `The run stopped:`, and no claim is `in_progress`.
-- [ ] With nothing waiting, `run_queue` prints `No claims are waiting` and starts no run.
-- [ ] `uv run -m agent` uses every waiting claim, `--cap 5` uses five, and `CLM-1001` works one claim. Tested with the run stubbed.
-- [ ] Live, after a reseed, with `npm run dev` up: `uv run -m agent --cap 5` prints a report line per claim it works, then the summary.
-- [ ] Live: exactly five claims are no longer `waiting`, and none are `in_progress`. The latest run is `finished`. Every approval over $1,000 is unpaid and waiting for sign-off. Every other approval is paid its payout. Each claim worked has at least one reading step.
-- [ ] `npm run check` passes.
+- [x] The queue agent's tools are exactly `list_claims`, `write_todos`, and `work_claim`.
+- [x] Stub run of three waiting claims: it lists them, writes the list, marks each item in progress and then done around `work_claim`, and finishes with a summary. All three are decided. The latest run is `finished` with that summary and every item `done`. The first message states the cap.
+- [x] Cap 2 with four waiting: `work_claim` on a third new claim is refused and the refusal names the cap. Two claims are worked. The other two stay `waiting` with 0 attempts.
+- [x] The claim model raises on the first of three claims. The other two are still decided and the run finishes.
+- [x] A claim that fails once is `waiting`. The stub calls `work_claim` on it again, which the cap allows, and it is decided. Its steps show both attempts with the error between them.
+- [x] A claim that fails both attempts is `left_for_handler`. The report says so. The other claims in the run are still decided.
+- [x] The stub tries to finish while a claim it started is back in the queue. The harness names that claim. The stub works it, then the run finishes. A stub that ignores the reminder gets two, then the run finishes anyway.
+- [x] A claim left `in_progress` before the run starts goes back to the queue with the reason `The run stopped before this claim was finished`, and this run can work it.
+- [x] If the queue model raises, the run finishes with a summary starting `The run stopped:`, and no claim is `in_progress`.
+- [x] With nothing waiting, `run_queue` prints `No claims are waiting` and starts no run.
+- [x] `uv run -m agent` uses every waiting claim, `--cap 5` uses five, and `CLM-1001` works one claim. Tested with the run stubbed.
+- [x] Live, after a reseed, with `npm run dev` up: `uv run -m agent --cap 5` prints a report line per claim it works, then the summary.
+- [x] Live: exactly five claims are no longer `waiting`, and none are `in_progress`. The latest run is `finished`. Every approval over $1,000 is unpaid and waiting for sign-off. Every other approval is paid its payout. Each claim worked has at least one reading step.
+- [x] `npm run check` passes.
 
 ## Phase 5 — The queue page and the claim page
 
