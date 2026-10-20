@@ -36,7 +36,9 @@ def test_policy_wording_and_limit(tmp_path: Path):
     assert "Trip Delay" in wording
     assert store.get_payout_approval_limit(connection) == 1000.0
     instructions = store.get_instructions(connection)
-    assert "UnderCover Agent" in instructions
+    assert "UnderCover Agent" in instructions["claim"]
+    assert "queue" in instructions
+    assert store.get_claims_manual(connection).strip()
     connection.close()
 
 

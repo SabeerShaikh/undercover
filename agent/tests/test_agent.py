@@ -32,13 +32,65 @@ def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 def test_model_name(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.delenv("MODEL_NAME", raising=False)
-    assert main.model().model_name == "openai/gpt-6-luna"
+    built = main.model()
+    assert built.model_name == "deepseek/deepseek-v4.1-flash"
+    assert built.reasoning_effort == "low"
+    assert built.request_timeout == 120
+    assert built.max_retries == 5
     monkeypatch.setenv("MODEL_NAME", "openrouter/free")
-    assert main.model().model_name == "openrouter/free"
+    override = main.model()
+    assert override.model_name == "openrouter/free"
+
+
+def test_claim_tools():
+    names = [tool.name for tool in main._tools_for("CLM-1001")]
+    assert names == list(main.CLAIM_TOOLS)
 
 
 def test_instructions_match_api(api: TestClient):
-    assert main.fetch_instructions() == api.get("/api/instructions").json()["text"]
+    assert main.fetch_instructions() == api.get("/api/instructions").json()["claim"]
+
+
+def test_read_section_records_reading(api: TestClient):
+    replies = [
+        AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "name": "read_section",
+                    "args": {"document": "claims_manual", "number": 9},
+                    "id": "1",
+                }
+            ],
+        ),
+        AIMessage(content="Read repeat claims."),
+    ]
+    main.run("CLM-1001", "thread-read", StubModel(messages=iter(replies)))
+    claim = api.get("/api/claims/CLM-1001").json()
+    details = [step["detail"] for step in claim["steps"]]
+    assert "Claims manual, section 9: Repeat claims" in details
+    kinds = [step["tool_name"] for step in claim["steps"]]
+    assert "reading" in kinds
+
+
+def test_read_missing_section_is_refusal(api: TestClient):
+    replies = [
+        AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "name": "read_section",
+                    "args": {"document": "claims_manual", "number": 15},
+                    "id": "1",
+                }
+            ],
+        ),
+        AIMessage(content="Section missing."),
+    ]
+    main.run("CLM-1001", "thread-missing", StubModel(messages=iter(replies)))
+    claim = api.get("/api/claims/CLM-1001").json()
+    kinds = [step["tool_name"] for step in claim["steps"]]
+    assert "reading" not in kinds
 
 
 def test_run_approves_and_pays(api: TestClient):
@@ -49,7 +101,13 @@ def test_run_approves_and_pays(api: TestClient):
         ),
         AIMessage(
             content="",
-            tool_calls=[{"name": "get_policy_wording", "args": {}, "id": "2"}],
+            tool_calls=[
+                {
+                    "name": "read_section",
+                    "args": {"document": "policy_wording", "number": 3},
+                    "id": "2",
+                }
+            ],
         ),
         AIMessage(
             content="",
@@ -68,7 +126,7 @@ def test_run_approves_and_pays(api: TestClient):
         ),
         AIMessage(
             content="",
-            tool_calls=[{"name": "pay", "args": {"amount": 420.0}, "id": "4"}],
+            tool_calls=[{"name": "pay_claim", "args": {"amount": 420.0}, "id": "4"}],
         ),
         AIMessage(content="Approved and paid $420.00."),
     ]
@@ -89,10 +147,6 @@ def test_run_over_limit_blocks_pay(api: TestClient):
         ),
         AIMessage(
             content="",
-            tool_calls=[{"name": "get_policy_wording", "args": {}, "id": "2"}],
-        ),
-        AIMessage(
-            content="",
             tool_calls=[
                 {
                     "name": "record_decision",
@@ -108,7 +162,7 @@ def test_run_over_limit_blocks_pay(api: TestClient):
         ),
         AIMessage(
             content="",
-            tool_calls=[{"name": "pay", "args": {"amount": 1150.0}, "id": "4"}],
+            tool_calls=[{"name": "pay_claim", "args": {"amount": 1150.0}, "id": "4"}],
         ),
         AIMessage(content="Approved; waiting for sign-off."),
     ]
@@ -124,10 +178,6 @@ def test_run_declines(api: TestClient):
         AIMessage(
             content="",
             tool_calls=[{"name": "get_claim", "args": {}, "id": "1"}],
-        ),
-        AIMessage(
-            content="",
-            tool_calls=[{"name": "get_policy_wording", "args": {}, "id": "2"}],
         ),
         AIMessage(
             content="",

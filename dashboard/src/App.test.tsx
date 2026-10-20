@@ -245,19 +245,29 @@ it("starts the agent on a waiting claim", async () => {
 });
 
 it("shows read-only instructions", async () => {
-  const text = "You are the UnderCover Agent.";
+  const queueText = "You run the UnderCover claims queue.";
+  const claimText = "You are the UnderCover Agent.";
   const fetchMock = vi.fn((input: RequestInfo | URL) => {
     const url = requestUrl(input);
     if (url.endsWith("/api/claims"))
       return Promise.resolve(jsonResponse(queue));
     if (url.endsWith("/api/instructions")) {
-      return Promise.resolve(jsonResponse({ text }));
+      return Promise.resolve(
+        jsonResponse({ queue: queueText, claim: claimText }),
+      );
     }
     return Promise.resolve(jsonResponse({}, 404));
   });
   vi.stubGlobal("fetch", fetchMock);
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: "Instructions" }));
-  expect(await screen.findByText(text)).toBeDefined();
+  expect(
+    await screen.findByRole("heading", { name: "Running the queue" }),
+  ).toBeDefined();
+  expect(
+    screen.getByRole("heading", { name: "Working a claim" }),
+  ).toBeDefined();
+  expect(screen.getByText(queueText)).toBeDefined();
+  expect(screen.getByText(claimText)).toBeDefined();
   expect(screen.queryByRole("textbox")).toBeNull();
 });

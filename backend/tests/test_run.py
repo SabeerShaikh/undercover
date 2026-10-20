@@ -38,7 +38,13 @@ def test_run_route_approves_and_pays(
         ),
         AIMessage(
             content="",
-            tool_calls=[{"name": "get_policy_wording", "args": {}, "id": "2"}],
+            tool_calls=[
+                {
+                    "name": "read_section",
+                    "args": {"document": "policy_wording", "number": 3},
+                    "id": "2",
+                }
+            ],
         ),
         AIMessage(
             content="",
@@ -57,7 +63,7 @@ def test_run_route_approves_and_pays(
         ),
         AIMessage(
             content="",
-            tool_calls=[{"name": "pay", "args": {"amount": 420.0}, "id": "4"}],
+            tool_calls=[{"name": "pay_claim", "args": {"amount": 420.0}, "id": "4"}],
         ),
         AIMessage(content="Done."),
     ]

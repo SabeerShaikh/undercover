@@ -26,16 +26,24 @@ test("opening a claim shows its story and policy", async ({ page }) => {
 
 test("instructions are visible and not editable", async ({ page, request }) => {
   const instructionsResponse = await request.get(`${API}/api/instructions`);
-  const apiBody = (await instructionsResponse.json()) as { text: string };
+  const apiBody = (await instructionsResponse.json()) as {
+    queue: string;
+    claim: string;
+  };
   await page.goto("/");
   await page.getByRole("button", { name: "Instructions" }).click();
   await expect(
-    page.getByRole("heading", { name: "Agent instructions" }),
+    page.getByRole("heading", { name: "Running the queue" }),
   ).toBeVisible();
-  await expect(page.getByText("You are the UnderCover Agent.")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Working a claim" }),
+  ).toBeVisible();
   await expect(page.locator("textarea, input")).toHaveCount(0);
-  await expect(page.locator("pre.instructions")).toContainText(
-    apiBody.text.slice(0, 40),
+  await expect(page.locator("pre.instructions").first()).toContainText(
+    apiBody.queue.slice(0, 40),
+  );
+  await expect(page.locator("pre.instructions").nth(1)).toContainText(
+    apiBody.claim.slice(0, 40),
   );
 });
 

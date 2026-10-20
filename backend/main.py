@@ -10,7 +10,7 @@ from langchain_core.language_models import BaseChatModel
 from pydantic import BaseModel, Field
 
 from agent import main as agent_main
-from backend import store
+from backend import documents, store
 
 app = FastAPI(title="UnderCover")
 db = store.init_db()
@@ -66,8 +66,44 @@ def get_policy_wording() -> dict[str, str]:
 
 @app.get("/api/instructions", operation_id="get_instructions")
 def get_instructions() -> dict[str, str]:
-    """Return the agent's instructions."""
-    return {"text": store.get_instructions(db)}
+    """Return the queue and claim agent instructions."""
+    texts = store.get_instructions(db)
+    wording = store.get_policy_wording(db)
+    manual = store.get_claims_manual(db)
+    claim = texts["claim"].rstrip() + "\n\n" + documents.contents(wording, manual)
+    return {"queue": texts["queue"], "claim": claim}
+
+
+@app.get("/api/documents/search", operation_id="search_documents")
+def search_documents(query: str) -> list[dict[str, Any]]:
+    """Search the policy wording and claims manual for a word or phrase."""
+    if not query.strip():
+        raise HTTPException(status_code=422, detail="Query is required")
+    hits: list[dict[str, Any]] = []
+    for name in documents.DOCUMENT_NAMES:
+        text = store.get_document(db, name)
+        if text is None:
+            continue
+        for hit in documents.search_sections(documents.split_sections(text), query):
+            hits.append({"document": name, **hit})
+    return hits
+
+
+@app.get(
+    "/api/documents/{document}/sections/{number}",
+    operation_id="read_section",
+)
+def read_section(document: str, number: int) -> dict[str, Any]:
+    """Return one numbered section of the policy wording or claims manual."""
+    if document not in documents.DOCUMENT_NAMES:
+        raise HTTPException(status_code=422, detail="Unknown document")
+    text = store.get_document(db, document)
+    if text is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    for section in documents.split_sections(text):
+        if section["number"] == number:
+            return {"document": document, **section}
+    raise HTTPException(status_code=404, detail="Section not found")
 
 
 @app.post("/api/claims/{claim_id}/decision", operation_id="record_decision")

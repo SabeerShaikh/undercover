@@ -15,11 +15,13 @@ export async function fetchClaim(claimId: string): Promise<ClaimDetail> {
   return readJson(await fetch(`/api/claims/${claimId}`));
 }
 
-export async function fetchInstructions(): Promise<string> {
-  const body = await readJson<{ text: string }>(
-    await fetch("/api/instructions"),
-  );
-  return body.text;
+export interface InstructionsText {
+  queue: string;
+  claim: string;
+}
+
+export async function fetchInstructions(): Promise<InstructionsText> {
+  return readJson<InstructionsText>(await fetch("/api/instructions"));
 }
 
 export async function signOffClaim(claimId: string): Promise<void> {

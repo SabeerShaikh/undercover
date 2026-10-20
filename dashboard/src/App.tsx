@@ -9,13 +9,17 @@ import {
 import { ClaimView } from "./ClaimView";
 import { Instructions } from "./Instructions";
 import { Queue } from "./Queue";
+import type { InstructionsText } from "./api";
 import type { ClaimDetail, QueueClaim, View } from "./types";
 
 export function App() {
   const [view, setView] = useState<View>({ name: "queue" });
   const [claims, setClaims] = useState<QueueClaim[]>([]);
   const [claim, setClaim] = useState<ClaimDetail | null>(null);
-  const [instructions, setInstructions] = useState("");
+  const [instructions, setInstructions] = useState<InstructionsText>({
+    queue: "",
+    claim: "",
+  });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -166,7 +170,9 @@ export function App() {
         </section>
       )}
 
-      {view.name === "instructions" && <Instructions text={instructions} />}
+      {view.name === "instructions" && (
+        <Instructions queue={instructions.queue} claim={instructions.claim} />
+      )}
     </div>
   );
 }

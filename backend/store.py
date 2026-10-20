@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
+INSTRUCTIONS_DIR = Path(__file__).resolve().parent / "instructions"
 _lock = threading.RLock()
 
 
@@ -31,24 +32,9 @@ def default_db_path() -> Path:
     return Path(os.environ.get("UNDERCOVER_DB", str(ROOT / "undercover.db")))
 
 
-DEFAULT_INSTRUCTIONS = """\
-You are the UnderCover Agent. You decide travel insurance claims.
-
-For each claim you are given:
-1. Read your instructions, the claim (story, items, documents), the customer's \
-policy and claim history, the plan limits, and the policy wording.
-2. Decide to approve, decline, or refer. Approve only when the policy wording \
-covers the loss; decline when it does not; refer when you need judgment or more \
-information the wording does not settle.
-3. When you approve, work out the payout from the plan limits, deductibles, and \
-wording (supplier refunds taken off first where the wording says so).
-4. Record the decision with a payout (0 when not approving), a reason in two or \
-three sentences, and the relevant section of the policy wording.
-5. After an approve, call pay with that payout. If pay is refused because the \
-claim is waiting for sign-off, leave it; a handler will finish payment.
-6. Base decisions only on the policy wording and the records the API returns. \
-Do not invent coverage. Amounts are in US dollars.
-"""
+def instruction_text(role: str) -> str:
+    """Return the instruction file for the queue or claim agent."""
+    return (INSTRUCTIONS_DIR / f"{role}.md").read_text(encoding="utf-8")
 
 
 def connect(db_path: Path | str | None = None) -> sqlite3.Connection:
@@ -105,8 +91,12 @@ def init_db(db_path: Path | str | None = None) -> sqlite3.Connection:
             id INTEGER PRIMARY KEY CHECK (id = 1),
             text TEXT NOT NULL
         );
-        CREATE TABLE IF NOT EXISTS instructions (
+        CREATE TABLE IF NOT EXISTS claims_manual (
             id INTEGER PRIMARY KEY CHECK (id = 1),
+            text TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS instructions (
+            role TEXT PRIMARY KEY,
             text TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS steps (
@@ -119,9 +109,50 @@ def init_db(db_path: Path | str | None = None) -> sqlite3.Connection:
         """
     )
     connection.commit()
+    _migrate_schema(connection)
     if not _seeded(connection):
         seed(connection)
+    _backfill_documents(connection)
     return connection
+
+
+def _migrate_schema(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS claims_manual (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            text TEXT NOT NULL
+        )
+        """
+    )
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(instructions)")}
+    if "role" not in columns:
+        connection.execute("DROP TABLE IF EXISTS instructions")
+        connection.execute(
+            """
+            CREATE TABLE instructions (
+                role TEXT PRIMARY KEY,
+                text TEXT NOT NULL
+            )
+            """
+        )
+    connection.commit()
+
+
+def _backfill_documents(connection: sqlite3.Connection, data_dir: Path = DATA) -> None:
+    if connection.execute("SELECT 1 FROM claims_manual").fetchone() is None:
+        manual = (data_dir / "claims_manual.md").read_text(encoding="utf-8")
+        connection.execute(
+            "INSERT INTO claims_manual (id, text) VALUES (1, ?)",
+            (manual,),
+        )
+    if connection.execute("SELECT 1 FROM instructions").fetchone() is None:
+        for role in ("queue", "claim"):
+            connection.execute(
+                "INSERT INTO instructions (role, text) VALUES (?, ?)",
+                (role, instruction_text(role)),
+            )
+    connection.commit()
 
 
 def _seeded(connection: sqlite3.Connection) -> bool:
@@ -138,6 +169,7 @@ def seed(connection: sqlite3.Connection, data_dir: Path = DATA) -> None:
     customers = json.loads((data_dir / "customers.json").read_text(encoding="utf-8"))
     claims = json.loads((data_dir / "claims.json").read_text(encoding="utf-8"))
     wording = (data_dir / "policy_wording.md").read_text(encoding="utf-8")
+    manual = (data_dir / "claims_manual.md").read_text(encoding="utf-8")
 
     connection.execute(
         "INSERT INTO company (id, data) VALUES (1, ?)",
@@ -180,9 +212,14 @@ def seed(connection: sqlite3.Connection, data_dir: Path = DATA) -> None:
         (wording,),
     )
     connection.execute(
-        "INSERT INTO instructions (id, text) VALUES (1, ?)",
-        (DEFAULT_INSTRUCTIONS,),
+        "INSERT INTO claims_manual (id, text) VALUES (1, ?)",
+        (manual,),
     )
+    for role in ("queue", "claim"):
+        connection.execute(
+            "INSERT INTO instructions (role, text) VALUES (?, ?)",
+            (role, instruction_text(role)),
+        )
     connection.commit()
 
 
@@ -276,10 +313,29 @@ def get_policy_wording(connection: sqlite3.Connection) -> str:
 
 
 @_synced
-def get_instructions(connection: sqlite3.Connection) -> str:
-    """Return the agent's instructions."""
-    row = connection.execute("SELECT text FROM instructions WHERE id = 1").fetchone()
+def get_claims_manual(connection: sqlite3.Connection) -> str:
+    """Return the claims manual markdown."""
+    row = connection.execute("SELECT text FROM claims_manual WHERE id = 1").fetchone()
     return row["text"] if row else ""
+
+
+@_synced
+def get_document(connection: sqlite3.Connection, name: str) -> str | None:
+    """Return one stored document, or None if the name is unknown."""
+    if name == "policy_wording":
+        text = get_policy_wording(connection)
+        return text or None
+    if name == "claims_manual":
+        text = get_claims_manual(connection)
+        return text or None
+    return None
+
+
+@_synced
+def get_instructions(connection: sqlite3.Connection) -> dict[str, str]:
+    """Return the queue and claim instruction texts."""
+    rows = connection.execute("SELECT role, text FROM instructions").fetchall()
+    return {row["role"]: row["text"] for row in rows}
 
 
 @_synced

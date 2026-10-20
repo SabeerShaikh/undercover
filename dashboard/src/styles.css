@@ -381,6 +381,12 @@ nav button.active {
   padding: 1rem;
 }
 
+.instructions-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
 .instructions {
   white-space: pre-wrap;
   font-family: var(--font-sans);

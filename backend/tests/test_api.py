@@ -48,7 +48,9 @@ def test_policy_wording_and_instructions(client: TestClient):
     assert wording.json()["text"].strip()
     instructions = client.get("/api/instructions")
     assert instructions.status_code == 200
-    assert "UnderCover Agent" in instructions.json()["text"]
+    body = instructions.json()
+    assert "UnderCover Agent" in body["claim"]
+    assert body["queue"]
 
 
 def test_decline_then_pay_fails(client: TestClient):

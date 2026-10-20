@@ -1,10 +1,10 @@
 # Status
 
-The claims pilot is running.
+The claims pilot is running, with lookup of the policy wording and the claims manual.
 
-- `backend/`: SQLite store seeded from `data/` into `undercover.db` (gitignored; override with `UNDERCOVER_DB`). Claims API for the queue, claim detail, policy wording, agent instructions, decision, sign-off, pay, steps, status, and `POST /api/claims/{id}/run` to start the agent in a background thread.
-- `agent/`: `run(claim_id, thread_id)` loads instructions from the API and decides through backend-only tools. Stub-model tests cover approve/pay, over-limit sign-off, and decline. `uv run -m agent` runs the agent on every waiting claim (backend must already be up).
-- `dashboard/`: branded queue, claim view (with run, steps, and sign-off), and read-only instructions. Light and dark surfaces follow `docs/BRAND.md`.
+- `backend/`: SQLite store seeded from `data/` into `undercover.db` (gitignored; override with `UNDERCOVER_DB`). Claims API for the queue, claim detail, policy wording, claims manual sections (`search_documents`, `read_section`), queue and claim instructions, decision, sign-off, pay, steps, status, and `POST /api/claims/{id}/run` to start the agent in a background thread.
+- `agent/`: `run(claim_id, thread_id)` loads claim instructions from the API and decides through backend-only tools, including search and read of sections. Default model is DeepSeek V4.1 Flash. Stub-model tests cover approve/pay, over-limit sign-off, decline, and reading steps. `uv run -m agent` runs the agent on every waiting claim (backend must already be up).
+- `dashboard/`: branded queue, claim view (with run, steps, and sign-off), and read-only instructions for running the queue and working a claim. Light and dark surfaces follow `docs/BRAND.md`.
 - `e2e/`: Playwright covers the queue, claim detail, instructions, and sign-off path (no model calls).
 
 ## How to run
