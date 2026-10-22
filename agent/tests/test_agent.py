@@ -1,15 +1,13 @@
 """Tests for the UnderCover Agent with a stub model."""
 
-from pathlib import Path
-
 import pytest
 from fastapi.testclient import TestClient
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage
 
+from agent import api as agent_api
 from agent import main
-from backend import main as backend_main
-from backend import store
+from agent.tools import CLAIM_TOOLS
 
 
 class StubModel(GenericFakeChatModel):
@@ -17,16 +15,6 @@ class StubModel(GenericFakeChatModel):
 
     def bind_tools(self, tools, **kwargs):
         return self
-
-
-@pytest.fixture
-def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    connection = store.init_db(tmp_path / "agent.db")
-    monkeypatch.setattr(backend_main, "db", connection)
-    monkeypatch.setattr(main, "backend", lambda: TestClient(backend_main.app))
-    with TestClient(backend_main.app) as client:
-        yield client
-    connection.close()
 
 
 def test_model_name(monkeypatch: pytest.MonkeyPatch):
@@ -43,12 +31,38 @@ def test_model_name(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_claim_tools():
-    names = [tool.name for tool in main._tools_for("CLM-1001")]
-    assert names == list(main.CLAIM_TOOLS)
+    assert [tool.name for tool in CLAIM_TOOLS] == [
+        "get_claim",
+        "search_documents",
+        "read_section",
+        "record_decision",
+        "pay_claim",
+    ]
 
 
 def test_instructions_match_api(api: TestClient):
-    assert main.fetch_instructions() == api.get("/api/instructions").json()["claim"]
+    expected = api.get("/api/instructions").json()["claim"]
+    assert agent_api.claim_instructions() == expected
+
+
+def test_search_documents_records_a_step(api: TestClient):
+    replies = [
+        AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "name": "search_documents",
+                    "args": {"query": "wild animal"},
+                    "id": "1",
+                }
+            ],
+        ),
+        AIMessage(content="Found the wild animals note."),
+    ]
+    main.run("CLM-1001", "thread-search", StubModel(messages=iter(replies)))
+    claim = api.get("/api/claims/CLM-1001").json()
+    details = [step["detail"] for step in claim["steps"]]
+    assert "wild animal" in details
 
 
 def test_read_section_records_reading(api: TestClient):

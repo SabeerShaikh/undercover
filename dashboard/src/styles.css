@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap");
 
 :root {
+  color-scheme: light;
   --sea-green: #06d6a0;
   --marigold: #ffc145;
   --coral: #f78c6b;
@@ -22,7 +23,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --page: #04232e;
     --panel: #000000;
     --inset: #0a1d24;

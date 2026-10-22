@@ -1,6 +1,5 @@
 """Tests for work_claim failure handling and the one-line report."""
 
-from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -11,8 +10,6 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 
 from agent import __main__ as cli
 from agent import main
-from backend import main as backend_main
-from backend import store
 
 
 class StubModel(GenericFakeChatModel):
@@ -105,16 +102,6 @@ def _approve_replies(payout: float, pay: bool) -> list[AIMessage]:
         )
     replies.append(AIMessage(content="done"))
     return replies
-
-
-@pytest.fixture
-def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    connection = store.init_db(tmp_path / "work.db")
-    monkeypatch.setattr(backend_main, "db", connection)
-    monkeypatch.setattr(main, "backend", lambda: TestClient(backend_main.app))
-    with TestClient(backend_main.app) as client:
-        yield client
-    connection.close()
 
 
 def test_work_claim_approves_and_pays(api: TestClient):

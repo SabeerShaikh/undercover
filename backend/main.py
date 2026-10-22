@@ -265,14 +265,14 @@ def run_claim(claim_id: str) -> dict[str, str]:
     def work() -> None:
         try:
             agent_main.work_claim(claim_id, llm)
-        except Exception:
+        except Exception as exc:
             current = store.get_claim(db, claim_id)
             if (
                 current is not None
                 and current["status"] == "in_progress"
                 and current["decision"] is None
             ):
-                store.set_status(db, claim_id, "waiting")
+                store.fail_claim(db, claim_id, str(exc))
 
     threading.Thread(target=work, daemon=True).start()
     return {"status": "started"}

@@ -1,24 +1,10 @@
 """Tests for uv run -m agent."""
 
-from pathlib import Path
-
 import pytest
 from fastapi.testclient import TestClient
 
 from agent import __main__ as cli
 from agent import main
-from backend import main as backend_main
-from backend import store
-
-
-@pytest.fixture
-def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    connection = store.init_db(tmp_path / "cli.db")
-    monkeypatch.setattr(backend_main, "db", connection)
-    monkeypatch.setattr(main, "backend", lambda: TestClient(backend_main.app))
-    with TestClient(backend_main.app) as client:
-        yield client
-    connection.close()
 
 
 def test_waiting_claim_ids(api: TestClient):

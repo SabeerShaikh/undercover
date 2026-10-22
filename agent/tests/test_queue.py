@@ -1,6 +1,5 @@
 """Tests for the queue agent: cap, retries, missed-claim check, CLI."""
 
-from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -11,8 +10,7 @@ from langchain_core.outputs import ChatGeneration, ChatResult
 
 from agent import __main__ as cli
 from agent import main
-from backend import main as backend_main
-from backend import store
+from agent.tools import QUEUE_TOOLS
 
 
 class StubModel(GenericFakeChatModel):
@@ -158,16 +156,6 @@ def queue_messages_for(claim_ids: list[str], extra: list[AIMessage] | None = Non
     return messages
 
 
-@pytest.fixture
-def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    connection = store.init_db(tmp_path / "queue.db")
-    monkeypatch.setattr(backend_main, "db", connection)
-    monkeypatch.setattr(main, "backend", lambda: TestClient(backend_main.app))
-    with TestClient(backend_main.app) as client:
-        yield client
-    connection.close()
-
-
 def _keep_waiting(api: TestClient, keep: set[str]) -> None:
     for claim in api.get("/api/claims").json():
         if claim["claim_id"] in keep or claim["status"] != "waiting":
@@ -184,8 +172,11 @@ def _keep_waiting(api: TestClient, keep: set[str]) -> None:
 
 
 def test_queue_tools():
-    names = [tool.name for tool in main._queue_tools(1, 5, set(), None)]
-    assert names == list(main.QUEUE_TOOLS)
+    assert [tool.name for tool in QUEUE_TOOLS] == [
+        "list_claims",
+        "write_todos",
+        "work_claim",
+    ]
 
 
 def test_queue_run_of_three(api: TestClient):

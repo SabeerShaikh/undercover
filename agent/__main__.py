@@ -7,16 +7,14 @@ import sys
 
 import httpx
 
-from agent import main
+from agent import api, main
 
 
 def waiting_claim_ids() -> list[str]:
     """Return claim ids that are still waiting in the queue."""
-    with main.backend() as client:
-        response = client.get("/api/claims")
-    response.raise_for_status()
-    claims = response.json()
-    return [claim["claim_id"] for claim in claims if claim["status"] == "waiting"]
+    return [
+        claim["claim_id"] for claim in api.list_claims() if claim["status"] == "waiting"
+    ]
 
 
 def main_cli(argv: list[str] | None = None) -> int:
@@ -38,7 +36,7 @@ def main_cli(argv: list[str] | None = None) -> int:
         return 0
     except (httpx.HTTPError, OSError) as exc:
         print(
-            "Could not reach the backend at http://localhost:8000.\n"
+            f"Could not reach the backend at {api.BACKEND_URL}.\n"
             "Start it first with: npm run dev\n"
             f"({exc})",
             file=sys.stderr,

@@ -8,7 +8,8 @@ from fastapi.testclient import TestClient
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage
 
-from agent import main as agent_main
+from agent import api as agent_api
+from agent.tests.conftest import ReuseClient
 from backend import main, store
 
 
@@ -21,8 +22,8 @@ class StubModel(GenericFakeChatModel):
 def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     connection = store.init_db(tmp_path / "run.db")
     monkeypatch.setattr(main, "db", connection)
-    monkeypatch.setattr(agent_main, "backend", lambda: TestClient(main.app))
     with TestClient(main.app) as test_client:
+        monkeypatch.setattr(agent_api, "client", lambda: ReuseClient(test_client))
         yield test_client
     monkeypatch.setattr(main, "agent_llm", None)
     connection.close()
@@ -82,3 +83,4 @@ def test_run_route_approves_and_pays(
     assert claim["decision"] == "approve"
     assert claim["paid_amount"] == 420.0
     assert claim["status"] == "decided"
+    time.sleep(0.2)
